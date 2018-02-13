@@ -40,7 +40,7 @@ void do_compute(const struct parameters* p, struct results *r)
 	gettimeofday(&start, 0);
 	while(iter++ < p->maxiter && maxdiff > p->threshold){
 		// do computations;
-		maxdiff = 0.;
+		maxdiff = 0;
 		// update most left and most right columns( cache suffers )
 		for(int i = 0; i < N; ++i){
 			(*temp_init)[i + 1][0] = (*temp_init)[i + 1][M]; // move last column to 0's
@@ -48,6 +48,7 @@ void do_compute(const struct parameters* p, struct results *r)
 		}
 
 		// finally start computations
+		#pragma GCC ivdep
 		for(int i = 1; i <= N; ++i){
 			for(int j = 1; j <= M ; ++j){
 				double weighted_neighb = dir_nc *

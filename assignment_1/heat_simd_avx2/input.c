@@ -49,11 +49,11 @@ static void readpgm_float(const char *fname,
 
     fscanf(f, "%2s", format);
     if (format[0] != 'P' || format[1] != '2') die("only ASCII PGM input is supported");
-
+    
     if (fscanf(f, "%u", &imgw) != 1 ||
         fscanf(f, "%u", &imgh) != 1 ||
         fscanf(f, "%u", &maxv) != 1) die("invalid input");
-
+    
     if (imgw != width || imgh != height) {
         fprintf(stderr, "input data size (%ux%u) does not match cylinder size (%zux%zu)\n",
                 imgw, imgh, width, height);
@@ -101,7 +101,7 @@ void read_parameters(struct parameters* p, int argc, char **argv)
         case 'L': p->io_tmin = strtod(optarg, 0); break;
         case 'H': p->io_tmax = strtod(optarg, 0); break;
         case 'p': p->nthreads = strtol(optarg, 0, 10); break;
-        case 'r': p->printreports = 42; break;
+        case 'r': p->printreports = 1; break;
         case 'h': default: usage(argv[0]);
         }
     }
@@ -129,12 +129,15 @@ void read_parameters(struct parameters* p, int argc, char **argv)
     atexit(cleanup);
 
     if (!(tinit = calloc(p->N * p->M, sizeof(double)))) die("calloc");
-    if (tinit_fname)
+    if (tinit_fname) 
         readpgm_float(tinit_fname, p->N, p->M, tinit, p->io_tmin, p->io_tmax);
     p->tinit = tinit;
 
     if (!(conductivity = calloc(p->N * p->M, sizeof(double)))) die("calloc");
-    if (conductivity_fname)
+    if (conductivity_fname) 
         readpgm_float(conductivity_fname, p->N, p->M, conductivity, 0.0, 1.0);
     p->conductivity = conductivity;
 }
+
+
+ 
