@@ -16,6 +16,13 @@ static unsigned int N,M;
 	__typeof(b) _b = (b);\
 	(_a) > (_b) ? (_a) : (_b); })
 
+#define min(a,b) \
+({\
+	__typeof(a) _a = (a);\
+	__typeof(b) _b = (b);\
+	(_a) < (_b) ? (_a) : (_b); })
+
+
 #define _index_macro(a, b, c) a[M * (b) + (c)]
 
 void do_compute(const struct parameters* p, struct results *r)
@@ -54,7 +61,6 @@ void do_compute(const struct parameters* p, struct results *r)
 	__m256d rev_cond_reg;
 	__m256d maxdiff_vect;
 	__m256d double_temp_reg;
-	//const4_reg = _mm256_set_pd(1./4,1./4,1./4,1./4);
 	const1_reg = _mm256_set1_pd(1.);
 	coef1_reg = _mm256_set1_pd(dir_nc);
 	coef2_reg = _mm256_set1_pd(dig_nc);
@@ -77,6 +83,7 @@ void do_compute(const struct parameters* p, struct results *r)
 	gettimeofday(&start, 0);
 	while(iter++ < p->maxiter && maxdiff > p->threshold){
 		// do computations;
+		maxdiff = 0.0;
 		maxdiff_vect = _mm256_set1_pd(0.0);
 		// update most left and most right columns( cache suffers )
 		for(int i = 0; i < N; ++i){
@@ -137,20 +144,29 @@ void do_compute(const struct parameters* p, struct results *r)
 					maxdiff = fabs((*temp_init)[i][j] - (*temp_tmp)[i - 1][j - 1]);
 			}
 		}
+		tmp_reg = _mm_max_pd(_mm256_extractf128_pd(maxdiff_vect, 0), _mm256_extractf128_pd(maxdiff_vect, 1));
+		_mm_storeu_pd(maxdiff_vect_mem, tmp_reg);
+		maxdiff = max(maxdiff, max(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
+
+
 		// syncrhonizing init matrix and temporary one
 		for(int i = 0; i < N; ++i)
 			memcpy( &(*temp_init)[i + 1][1], &(*temp_tmp)[i][0], M * sizeof(double));
 	}
 
-	maxdiff = 0;
-	//_mm256_storeu_pd(maxdiff_vect_mem, maxdiff_vect);
-	tmp_reg = _mm_max_pd(_mm256_extractf128_pd(maxdiff_vect, 0), _mm256_extractf128_pd(maxdiff_vect, 1));
-	_mm_storeu_pd(maxdiff_vect_mem, tmp_reg);
-	maxdiff = max(maxdiff_vect_mem[0], maxdiff_vect_mem[1]);
-
 	r->tmin = r->tmax = (*temp_tmp)[0][0];
+	maxdiff_vect = _mm256_set1_pd((*temp_tmp)[0][0]);
+	temp_init_reg_clone = _mm256_set1_pd((*temp_tmp)[0][0]);
+	direct_sum = _mm256_set1_pd(0);
 	for(int i = 1; i <= N; ++i){
-		for(int j = 1; j <= M ; ++j){
+		for(int j = 1; j <= M - (M % elems_per_iter) ; j += elems_per_iter){
+			temp_init_reg =_mm256_loadu_pd(&(*temp_init)[i][j]);
+			direct_sum = _mm256_add_pd(direct_sum, temp_init_reg);
+			maxdiff_vect = _mm256_max_pd(maxdiff_vect, temp_init_reg);
+			temp_init_reg_clone = _mm256_min_pd(temp_init_reg_clone, temp_init_reg);
+		}
+	
+		for(int j = M - (M % elems_per_iter) + 1; j <= M ; ++j){
 			if((*temp_init)[i][j] > r->tmax)
 				r->tmax = (*temp_init)[i][j];
 			if((*temp_init)[i][j] < r->tmin)
@@ -158,10 +174,22 @@ void do_compute(const struct parameters* p, struct results *r)
 			sum += (*temp_init)[i][j];
 		}
 	}
+	
+	tmp_reg = _mm_max_pd(_mm256_extractf128_pd(maxdiff_vect, 0), _mm256_extractf128_pd(maxdiff_vect, 1));
+	_mm_storeu_pd(maxdiff_vect_mem, tmp_reg);
+	r->tmax = max(r->tmax, max(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
+	
+	tmp_reg = _mm_min_pd(_mm256_extractf128_pd(temp_init_reg_clone, 0), _mm256_extractf128_pd(temp_init_reg_clone, 1));
+	_mm_storeu_pd(maxdiff_vect_mem, tmp_reg);
+	r->tmin = min(r->tmin, min(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
+
+	tmp_reg = _mm_add_pd(_mm256_extractf128_pd(direct_sum, 0), _mm256_extractf128_pd(direct_sum, 1));
+	_mm_storeu_pd(maxdiff_vect_mem, tmp_reg);
+	
 	gettimeofday(&end, 0);
 	r->time = (end.tv_sec + (end.tv_usec / 1000000.0)) - (start.tv_sec + (start.tv_usec / 1000000.0));
 	r->niter = iter - 1;
-	r->tavg = sum /(N * M);
+	r->tavg = (sum + maxdiff_vect_mem[0] + maxdiff_vect_mem[1]) /(N * M);
 	r->maxdiff = maxdiff;
 	return;
 }
