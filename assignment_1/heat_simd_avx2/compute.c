@@ -41,6 +41,7 @@ void do_compute(const struct parameters* p, struct results *r)
 	double maxdiff_vect_mem[elems_per_iter / 2];
 	__m256d weighted_neighb_reg;
 	__m256d temp_init_reg;
+	__m256d temp_init_extra, temp_init_extra2, temp_init_extra3;
 	__m256d temp_init_reg_clone;
 	__m256d temp_init_reg_left;
 	__m256d temp_init_reg_right;
@@ -50,6 +51,7 @@ void do_compute(const struct parameters* p, struct results *r)
 	__m256d temp_init_reg_d3;
 	__m256d temp_init_reg_d4;
 	__m256d temp_init_reg_bottom;
+	__m256d temp_init_reg_bottom_clone;
 	__m128d tmp_reg;
 	__m256d direct_sum;
 	__m256d diag_sum;
@@ -58,7 +60,9 @@ void do_compute(const struct parameters* p, struct results *r)
 	__m256d coef1_reg;
 	__m256d coef2_reg;
 	__m256d cond_reg;
+	__m256d cond2_reg;
 	__m256d rev_cond_reg;
+	__m256d rev_cond2_reg;
 	__m256d maxdiff_vect;
 	__m256d double_temp_reg;
 	const1_reg = _mm256_set1_pd(1.);
@@ -92,22 +96,32 @@ void do_compute(const struct parameters* p, struct results *r)
 		}
 
 		// finally start computations
-		for(int i = 1; i <= N; ++i){
+		for(int i = 1; i <= N; i+=2){
 			for(int j = 1; j <= (M - M % elems_per_iter) ; j += elems_per_iter){
 				cond_reg = _mm256_loadu_pd(&_index_macro(p->conductivity, i - 1, j - 1));
+				cond2_reg = _mm256_loadu_pd(&_index_macro(p->conductivity, i, j - 1));
 				rev_cond_reg = _mm256_sub_pd(const1_reg, cond_reg);
+				rev_cond2_reg = _mm256_sub_pd(const1_reg, cond2_reg);
+
+				temp_init_extra = _mm256_loadu_pd(&(*temp_init)[i + 2][j]);
+				temp_init_extra2 = _mm256_loadu_pd(&(*temp_init)[i + 2][j + 1]);
+				temp_init_extra3 = _mm256_loadu_pd(&(*temp_init)[i + 2][j - 1]);
+
 				temp_init_reg = _mm256_loadu_pd(&(*temp_init)[i][j]);
-				temp_init_reg_clone = _mm256_loadu_pd(&(*temp_init)[i][j]);
+				temp_init_reg_clone = temp_init_reg; //_mm256_loadu_pd(&(*temp_init)[i][j]);
 				temp_init_reg_left = _mm256_loadu_pd(&(*temp_init)[i][j - 1]);
 				temp_init_reg_right = _mm256_loadu_pd(&(*temp_init)[i][j + 1]);
 				temp_init_reg_top = _mm256_loadu_pd(&(*temp_init)[i - 1][j]);
-				temp_init_reg_bottom = _mm256_loadu_pd(&(*temp_init)[i + 1][j]);
 
 				temp_init_reg_d1 = _mm256_loadu_pd(&(*temp_init)[i - 1][j - 1]);
-				temp_init_reg_d2 = _mm256_loadu_pd(&(*temp_init)[i + 1][j - 1]);
 				temp_init_reg_d3 = _mm256_loadu_pd(&(*temp_init)[i - 1][j + 1]);
-				temp_init_reg_d4 = _mm256_loadu_pd(&(*temp_init)[i + 1][j + 1]);
 
+				temp_init_reg_bottom = _mm256_loadu_pd(&(*temp_init)[i + 1][j]);
+				temp_init_reg_bottom_clone = temp_init_reg_bottom; //_mm256_loadu_pd(&(*temp_init)[i + 1][j]);
+
+				temp_init_reg_d4 = _mm256_loadu_pd(&(*temp_init)[i + 1][j + 1]);
+				temp_init_reg_d2 = _mm256_loadu_pd(&(*temp_init)[i + 1][j - 1]);
+				// First row
 				direct_sum = _mm256_add_pd(temp_init_reg_left, temp_init_reg_right);
 				direct_sum = _mm256_add_pd(direct_sum, temp_init_reg_top);
 				direct_sum = _mm256_add_pd(direct_sum, temp_init_reg_bottom);
@@ -124,6 +138,28 @@ void do_compute(const struct parameters* p, struct results *r)
 				temp_init_reg = _mm256_add_pd(temp_init_reg, diag_sum);
 				_mm256_storeu_pd(&(*temp_tmp)[i - 1][j - 1], temp_init_reg);
 				double_temp_reg = _mm256_sub_pd(temp_init_reg, temp_init_reg_clone);
+				maxdiff_vect = _mm256_max_pd(maxdiff_vect, _mm256_max_pd(_mm256_sub_pd(_mm256_set1_pd(0.0), double_temp_reg), double_temp_reg));
+
+				if(i == N) // Don't need to compute anything after last row;
+					continue;
+
+				// Second row
+				direct_sum = _mm256_add_pd(temp_init_reg_d2, temp_init_reg_d4);
+				direct_sum = _mm256_add_pd(direct_sum, temp_init_reg_clone);
+				direct_sum = _mm256_add_pd(direct_sum, temp_init_extra);
+				direct_sum = _mm256_mul_pd(direct_sum, coef1_reg);
+
+				diag_sum = _mm256_add_pd(temp_init_reg_left, temp_init_extra3);
+				diag_sum = _mm256_add_pd(diag_sum, temp_init_reg_right);
+				diag_sum = _mm256_add_pd(diag_sum, temp_init_extra2);
+				diag_sum = _mm256_mul_pd(diag_sum, coef2_reg);
+
+				diag_sum = _mm256_add_pd(diag_sum, direct_sum);
+				diag_sum = _mm256_mul_pd(diag_sum, rev_cond2_reg);
+				temp_init_reg_bottom = _mm256_mul_pd(temp_init_reg_bottom, cond2_reg);
+				temp_init_reg_bottom = _mm256_add_pd(temp_init_reg_bottom, diag_sum);
+				_mm256_storeu_pd(&(*temp_tmp)[i][j - 1], temp_init_reg_bottom);
+				double_temp_reg = _mm256_sub_pd(temp_init_reg_bottom, temp_init_reg_bottom_clone);
 				maxdiff_vect = _mm256_max_pd(maxdiff_vect, _mm256_max_pd(_mm256_sub_pd(_mm256_set1_pd(0.0), double_temp_reg), double_temp_reg));
 			}
 
@@ -142,13 +178,26 @@ void do_compute(const struct parameters* p, struct results *r)
 				(*temp_tmp)[i - 1][j - 1] += weighted_neighb;
 				if(fabs((*temp_init)[i][j] - (*temp_tmp)[i - 1][j - 1]) >  maxdiff)
 					maxdiff = fabs((*temp_init)[i][j] - (*temp_tmp)[i - 1][j - 1]);
+
+				weighted_neighb = dir_nc *
+				( // Direct neighbors
+					(*temp_init)[i][j] + (*temp_init)[i + 1][j - 1] +
+					(*temp_init)[i + 2][j] + (*temp_init)[i + 1][j + 1]
+				) + dig_nc *
+				( // Diagonal neighbors
+					(*temp_init)[i][j - 1] + (*temp_init)[i + 2][j - 1] +
+					(*temp_init)[i][j + 1] + (*temp_init)[i + 2][j + 1]
+				);
+				weighted_neighb *= (1 - _index_macro(p->conductivity, i, j - 1));
+				(*temp_tmp)[i][j - 1] = (*temp_init)[i + 1][j] * _index_macro(p->conductivity, i, j - 1);
+				(*temp_tmp)[i][j - 1] += weighted_neighb;
+				if(fabs((*temp_init)[i + 1][j] - (*temp_tmp)[i][j - 1]) >  maxdiff)
+					maxdiff = fabs((*temp_init)[i + 1][j] - (*temp_tmp)[i][j - 1]);
 			}
 		}
 		tmp_reg = _mm_max_pd(_mm256_extractf128_pd(maxdiff_vect, 0), _mm256_extractf128_pd(maxdiff_vect, 1));
 		_mm_storeu_pd(maxdiff_vect_mem, tmp_reg);
 		maxdiff = max(maxdiff, max(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
-
-
 		// syncrhonizing init matrix and temporary one
 		for(int i = 0; i < N; ++i)
 			memcpy( &(*temp_init)[i + 1][1], &(*temp_tmp)[i][0], M * sizeof(double));
@@ -165,7 +214,7 @@ void do_compute(const struct parameters* p, struct results *r)
 			maxdiff_vect = _mm256_max_pd(maxdiff_vect, temp_init_reg);
 			temp_init_reg_clone = _mm256_min_pd(temp_init_reg_clone, temp_init_reg);
 		}
-	
+
 		for(int j = M - (M % elems_per_iter) + 1; j <= M ; ++j){
 			if((*temp_init)[i][j] > r->tmax)
 				r->tmax = (*temp_init)[i][j];
@@ -174,18 +223,18 @@ void do_compute(const struct parameters* p, struct results *r)
 			sum += (*temp_init)[i][j];
 		}
 	}
-	
+
 	tmp_reg = _mm_max_pd(_mm256_extractf128_pd(maxdiff_vect, 0), _mm256_extractf128_pd(maxdiff_vect, 1));
 	_mm_storeu_pd(maxdiff_vect_mem, tmp_reg);
 	r->tmax = max(r->tmax, max(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
-	
+
 	tmp_reg = _mm_min_pd(_mm256_extractf128_pd(temp_init_reg_clone, 0), _mm256_extractf128_pd(temp_init_reg_clone, 1));
 	_mm_storeu_pd(maxdiff_vect_mem, tmp_reg);
 	r->tmin = min(r->tmin, min(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
 
 	tmp_reg = _mm_add_pd(_mm256_extractf128_pd(direct_sum, 0), _mm256_extractf128_pd(direct_sum, 1));
 	_mm_storeu_pd(maxdiff_vect_mem, tmp_reg);
-	
+
 	gettimeofday(&end, 0);
 	r->time = (end.tv_sec + (end.tv_usec / 1000000.0)) - (start.tv_sec + (start.tv_usec / 1000000.0));
 	r->niter = iter - 1;
