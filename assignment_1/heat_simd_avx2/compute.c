@@ -204,6 +204,50 @@ void do_compute(const struct parameters* p, struct results *r)
 		// syncrhonizing init matrix and temporary one
 		for(int i = 0; i < N; ++i)
 			memcpy( &(*temp_init)[i + 1][1], &(*temp_tmp)[i][0], M * sizeof(double));
+
+
+			if(iter % p->period == 0){
+				double local_sum = 0;
+				r->tmin = r->tmax = (*temp_tmp)[0][0];
+				maxdiff_vect = _mm256_set1_pd((*temp_tmp)[0][0]);
+				temp_init_reg_clone = _mm256_set1_pd((*temp_tmp)[0][0]);
+				direct_sum = _mm256_set1_pd(0);
+				for(int i = 1; i <= N; ++i){
+					for(int j = 1; j <= M - (M % elems_per_iter) ; j += elems_per_iter){
+						temp_init_reg =_mm256_loadu_pd(&(*temp_init)[i][j]);
+						direct_sum = _mm256_add_pd(direct_sum, temp_init_reg);
+						maxdiff_vect = _mm256_max_pd(maxdiff_vect, temp_init_reg);
+						temp_init_reg_clone = _mm256_min_pd(temp_init_reg_clone, temp_init_reg);
+					}
+
+					for(int j = M - (M % elems_per_iter) + 1; j <= M ; ++j){
+						if((*temp_init)[i][j] > r->tmax)
+							r->tmax = (*temp_init)[i][j];
+						if((*temp_init)[i][j] < r->tmin)
+							r->tmin = (*temp_init)[i][j];
+						local_sum += (*temp_init)[i][j];
+					}
+				}
+
+				tmp_reg = _mm_max_pd(_mm256_extractf128_pd(maxdiff_vect, 0), _mm256_extractf128_pd(maxdiff_vect, 1));
+				_mm_storeu_pd(maxdiff_vect_mem, tmp_reg);
+				r->tmax = max(r->tmax, max(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
+
+				tmp_reg = _mm_min_pd(_mm256_extractf128_pd(temp_init_reg_clone, 0), _mm256_extractf128_pd(temp_init_reg_clone, 1));
+				_mm_storeu_pd(maxdiff_vect_mem, tmp_reg);
+				r->tmin = min(r->tmin, min(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
+
+				tmp_reg = _mm_add_pd(_mm256_extractf128_pd(direct_sum, 0), _mm256_extractf128_pd(direct_sum, 1));
+				_mm_storeu_pd(maxdiff_vect_mem, tmp_reg);
+
+				gettimeofday(&end, 0);
+				r->time = (end.tv_sec + (end.tv_usec / 1000000.0)) - (start.tv_sec + (start.tv_usec / 1000000.0));
+				r->niter = iter;
+				r->tavg = (local_sum + maxdiff_vect_mem[0] + maxdiff_vect_mem[1]) /(N * M);
+				r->maxdiff = maxdiff;
+				report_results(p, r);
+			}
+
 	}
 
 	r->tmin = r->tmax = (*temp_tmp)[0][0];

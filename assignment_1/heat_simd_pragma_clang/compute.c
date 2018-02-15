@@ -81,6 +81,25 @@ void do_compute(const struct parameters* p, struct results *r)
 		// syncrhonizing init matrix and temporary one
 		for(int i = 0; i < N; ++i)
 			memcpy( &(*temp_init)[i + 1][1], &(*temp_tmp)[i][0], M * sizeof(double));
+		if((iter % p->period) == 0){
+			double local_sum = 0;
+			gettimeofday(&end, 0);
+			r->tmin = r->tmax = (*temp_tmp)[0][0];
+			for(int i = 1; i <= N; ++i){
+				for(int j = 1; j <= M ; ++j){
+					if((*temp_init)[i][j] > r->tmax)
+						r->tmax = (*temp_init)[i][j];
+					if((*temp_init)[i][j] < r->tmin)
+						r->tmin = (*temp_init)[i][j];
+					local_sum += (*temp_init)[i][j];
+				}
+			}
+			r->time = (end.tv_sec + (end.tv_usec / 1000000.0)) - (start.tv_sec + (start.tv_usec / 1000000.0));
+			r->niter = iter;
+			r->tavg = local_sum /(N * M);
+			r->maxdiff = maxdiff;
+			report_results(p, r);
+		}
 	}
 
 	r->tmin = r->tmax = (*temp_tmp)[0][0];
