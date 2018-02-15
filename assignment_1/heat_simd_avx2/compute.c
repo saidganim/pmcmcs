@@ -29,9 +29,9 @@ void do_compute(const struct parameters* p, struct results *r)
 {
 	struct timeval start, end;
 	double (*temp_tmp)[p->N][p->M] = (double (*)[p->N][p->M]) malloc((p->N) * (p->M) * sizeof(double) + 15);
-	temp_tmp = (__typeof(temp_tmp)) ((unsigned long)temp_tmp & ~0xF);
 	double (*temp_init)[p->N + 2][p->M + 2] = (double (*)[p->N + 2][p->M + 2]) malloc((p->N + 2) * (p->M + 2) * sizeof(double) + 15);
-	temp_init = (__typeof(temp_init)) ((unsigned long)temp_init & ~0xF);
+	temp_tmp = (__typeof(temp_tmp)) (((unsigned long)temp_tmp + 15) & ~0xF);
+	temp_init = (__typeof(temp_init)) (((unsigned long)temp_init + 15) & ~0xF);
 	double maxdiff = p->threshold + 1.;
 	double sum = 0.;
 	unsigned int iter = 0;

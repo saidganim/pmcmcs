@@ -3,13 +3,13 @@ PRJ=$(CURR_DIR)
 SRC=$(wildcard *.c)
 OBJ=$(patsubst %.c,%.o,$(SRC))
 
-CC=gcc
+CC=clang
 INCLUDES=-I../../include
 ifndef DEBUG
-CFLAGS=-O2 -std=c99 -mavx2
+CFLAGS=-lm -O3 -mllvm -force-vector-interleave=2
 LIB=
 else
-CFLAGS=-O0 -g3 -std=c99 -mavx2
+CFLAGS=-O0 -g3 -std=c99 -fopt-info-vec -ftree-vectorize -march=native
 LIB=
 endif
 

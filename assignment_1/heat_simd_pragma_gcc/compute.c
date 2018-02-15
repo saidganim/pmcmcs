@@ -10,12 +10,21 @@
 static unsigned int N,M;
 
 #define _index_macro(a, b, c) a[M * (b) + (c)]
+#define max(a,b) \
+({\
+	__typeof(a) _a = (a);\
+	__typeof(b) _b = (b);\
+	(_a) > (_b) ? (_a) : (_b); })
 
 void do_compute(const struct parameters* p, struct results *r)
 {
 	struct timeval start, end;
-	double (*temp_tmp)[p->N][p->M] = (double (*)[p->N][p->M]) malloc((p->N) * (p->M) * sizeof(double));
-	double (*temp_init)[p->N + 2][p->M + 2] = (double (*)[p->N + 2][p->M + 2]) malloc((p->N + 2) * (p->M + 2) * sizeof(double));
+	double (* restrict temp_tmp)[p->N][p->M] = (double (*)[p->N][p->M]) malloc((p->N) * (p->M) * sizeof(double));
+	double (* restrict temp_init)[p->N + 2][p->M + 2] = (double (*)[p->N + 2][p->M + 2]) malloc((p->N + 2) * (p->M + 2) * sizeof(double));
+	temp_tmp = (__typeof(temp_tmp)) (((unsigned long)temp_tmp + 15) & ~0xF);
+	temp_init = (__typeof(temp_init)) (((unsigned long)temp_init + 15) & ~0xF);
+	temp_init = __builtin_assume_aligned(temp_init, 16);
+	temp_tmp = __builtin_assume_aligned(temp_tmp, 16);
 	double maxdiff = p->threshold + 1.;
 	double sum = 0.;
 	unsigned int iter = 0;
@@ -27,6 +36,7 @@ void do_compute(const struct parameters* p, struct results *r)
 	for(int i = 0; i < N; ++i)
 		memcpy(&(*temp_init)[i + 1][1], &_index_macro(p->tinit, i, 0), M * sizeof(double));
 	// copying top and bottom rows to new rows
+	#pragma GCC ivdep
 	for(int i = 0; i < M; ++i){
 		(*temp_init)[0][i + 1] = (*temp_init)[1][i + 1];
 		(*temp_init)[N + 1][i + 1] = (*temp_init)[N][i + 1];
@@ -49,8 +59,9 @@ void do_compute(const struct parameters* p, struct results *r)
 
 		// finally start computations
 		#pragma GCC ivdep
-		for(int i = 1; i <= N; ++i){
-			for(int j = 1; j <= M ; ++j){
+		for(int i = 1; i <= 150; ++i){
+			#pragma GCC ivdep
+			for(int j = 1; j <= 100 ; ++j){
 				double weighted_neighb = dir_nc *
 				( // Direct neighbors
 					(*temp_init)[i - 1][j] + (*temp_init)[i][j - 1] +
@@ -63,8 +74,7 @@ void do_compute(const struct parameters* p, struct results *r)
 				weighted_neighb *= (1 - _index_macro(p->conductivity, i - 1, j - 1));
 				(*temp_tmp)[i - 1][j - 1] = (*temp_init)[i][j] * _index_macro(p->conductivity, i - 1, j - 1);
 				(*temp_tmp)[i - 1][j - 1] += weighted_neighb;
-				if(fabs((*temp_init)[i][j] - (*temp_tmp)[i - 1][j - 1]) >  maxdiff)
-					maxdiff = fabs((*temp_init)[i][j] - (*temp_tmp)[i - 1][j - 1]);
+				maxdiff = max(maxdiff, fabs((*temp_init)[i][j] - (*temp_tmp)[i - 1][j - 1]));
 
 			}
 		}
@@ -73,8 +83,8 @@ void do_compute(const struct parameters* p, struct results *r)
 			memcpy( &(*temp_init)[i + 1][1], &(*temp_tmp)[i][0], M * sizeof(double));
 	}
 
-	gettimeofday(&end, 0);
 	r->tmin = r->tmax = (*temp_tmp)[0][0];
+	#pragma GCC ivdep
 	for(int i = 1; i <= N; ++i){
 		for(int j = 1; j <= M ; ++j){
 			if((*temp_init)[i][j] > r->tmax)
@@ -84,6 +94,7 @@ void do_compute(const struct parameters* p, struct results *r)
 			sum += (*temp_init)[i][j];
 		}
 	}
+	gettimeofday(&end, 0);
 	r->time = (end.tv_sec + (end.tv_usec / 1000000.0)) - (start.tv_sec + (start.tv_usec / 1000000.0));
 	r->niter = iter - 1;
 	r->tavg = sum /(N * M);
