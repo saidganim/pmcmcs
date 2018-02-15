@@ -19,8 +19,8 @@ static unsigned int N,M;
 void do_compute(const struct parameters* p, struct results *r)
 {
 	struct timeval start, end;
-	double (* restrict temp_tmp)[p->N][p->M] = (double (*)[p->N][p->M]) malloc((p->N) * (p->M) * sizeof(double));
-	double (* restrict temp_init)[p->N + 2][p->M + 2] = (double (*)[p->N + 2][p->M + 2]) malloc((p->N + 2) * (p->M + 2) * sizeof(double));
+	double (* restrict temp_tmp)[p->N][p->M] = (double (*)[p->N][p->M]) malloc((p->N) * (p->M) * sizeof(double) + 15);
+	double (* restrict temp_init)[p->N + 2][p->M + 2] = (double (*)[p->N + 2][p->M + 2]) malloc((p->N + 2) * (p->M + 2) * sizeof(double) + 15);
 	temp_tmp = (__typeof(temp_tmp)) (((unsigned long)temp_tmp + 15) & ~0xF);
 	temp_init = (__typeof(temp_init)) (((unsigned long)temp_init + 15) & ~0xF);
 	temp_init = __builtin_assume_aligned(temp_init, 16);
@@ -59,9 +59,9 @@ void do_compute(const struct parameters* p, struct results *r)
 
 		// finally start computations
 		#pragma GCC ivdep
-		for(int i = 1; i <= 150; ++i){
+		for(int i = 1; i <= N; ++i){
 			#pragma GCC ivdep
-			for(int j = 1; j <= 100 ; ++j){
+			for(int j = 1; j <= M ; ++j){
 				double weighted_neighb = dir_nc *
 				( // Direct neighbors
 					(*temp_init)[i - 1][j] + (*temp_init)[i][j - 1] +
