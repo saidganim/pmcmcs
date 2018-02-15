@@ -178,6 +178,9 @@ void do_compute(const struct parameters* p, struct results *r)
 				if(fabs((*temp_init)[i][j] - (*temp_tmp)[i - 1][j - 1]) >  maxdiff)
 					maxdiff = fabs((*temp_init)[i][j] - (*temp_tmp)[i - 1][j - 1]);
 
+				if(i == N) // Don't need to compute anything after last row;
+					continue;
+
 				weighted_neighb = dir_nc *
 				( // Direct neighbors
 					(*temp_init)[i][j] + (*temp_init)[i + 1][j - 1] +
