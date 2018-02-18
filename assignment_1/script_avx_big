@@ -1,0 +1,129 @@
+rm ./*_output
+echo " AVX BIG ========================================================================="
+
+sudo nice -n -20 /home/hacku/development/PMCMC/pmms-heat-diffusion/assignment_1/heat_simd_avx2_big/heat_simd_avx2_big -n 1000 -m 1000 -c ../pat2_1000x1000.pgm -t ../pat2_1000x1000.pgm   >> 1000x1000_avx2_big_output
+sudo nice -n -20 /home/hacku/development/PMCMC/pmms-heat-diffusion/assignment_1/heat_simd_avx2_big/heat_simd_avx2_big -n 1000 -m 1000 -c ../pat2_1000x1000.pgm -t ../pat2_1000x1000.pgm  >> 1000x1000_avx2_big_output
+sudo nice -n -20 /home/hacku/development/PMCMC/pmms-heat-diffusion/assignment_1/heat_simd_avx2_big/heat_simd_avx2_big -n 1000 -m 1000 -c ../pat2_1000x1000.pgm -t ../pat2_1000x1000.pgm >> 1000x1000_avx2_big_output
+sudo nice -n -20 /home/hacku/development/PMCMC/pmms-heat-diffusion/assignment_1/heat_simd_avx2_big/heat_simd_avx2_big -n 1000 -m 1000 -c ../pat2_1000x1000.pgm -t ../pat2_1000x1000.pgm >> 1000x1000_avx2_big_output
+sudo nice -n -20 /home/hacku/development/PMCMC/pmms-heat-diffusion/assignment_1/heat_simd_avx2_big/heat_simd_avx2_big -n 1000 -m 1000 -c ../pat2_1000x1000.pgm -t ../pat2_1000x1000.pgm >> 1000x1000_avx2_big_output
+sudo nice -n -20 /home/hacku/development/PMCMC/pmms-heat-diffusion/assignment_1/heat_simd_avx2_big/heat_simd_avx2_big -n 1000 -m 1000 -c ../pat2_1000x1000.pgm -t ../pat2_1000x1000.pgm >> 1000x1000_avx2_big_output
+sudo nice -n -20 /home/hacku/development/PMCMC/pmms-heat-diffusion/assignment_1/heat_simd_avx2_big/heat_simd_avx2_big -n 1000 -m 1000 -c ../pat2_1000x1000.pgm -t ../pat2_1000x1000.pgm >> 1000x1000_avx2_big_output
+sudo nice -n -20 /home/hacku/development/PMCMC/pmms-heat-diffusion/assignment_1/heat_simd_avx2_big/heat_simd_avx2_big -n 1000 -m 1000 -c ../pat2_1000x1000.pgm -t ../pat2_1000x1000.pgm >> 1000x1000_avx2_big_output
+sudo nice -n -20 /home/hacku/development/PMCMC/pmms-heat-diffusion/assignment_1/heat_simd_avx2_big/heat_simd_avx2_big -n 1000 -m 1000 -c ../pat2_1000x1000.pgm -t ../pat2_1000x1000.pgm >> 1000x1000_avx2_big_output
+sudo nice -n -20 /home/hacku/development/PMCMC/pmms-heat-diffusion/assignment_1/heat_simd_avx2_big/heat_simd_avx2_big -n 1000 -m 1000 -c ../pat2_1000x1000.pgm -t ../pat2_1000x1000.pgm >> 1000x1000_avx2_big_output
+echo " 1 ========================================================================="
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -L 0 -t heat_simd_avx2/pattern_100x150.pgm -c heat_simd_avx2/pattern_100x150.pgm >>  100x150_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -L 0 -t heat_simd_avx2/pattern_100x150.pgm -c heat_simd_avx2/pattern_100x150.pgm >>  100x150_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -L 0 -t heat_simd_avx2/pattern_100x150.pgm -c heat_simd_avx2/pattern_100x150.pgm >>  100x150_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -L 0 -t heat_simd_avx2/pattern_100x150.pgm -c heat_simd_avx2/pattern_100x150.pgm >>  100x150_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -L 0 -t heat_simd_avx2/pattern_100x150.pgm -c heat_simd_avx2/pattern_100x150.pgm >>  100x150_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -L 0 -t heat_simd_avx2/pattern_100x150.pgm -c heat_simd_avx2/pattern_100x150.pgm >>  100x150_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -L 0 -t heat_simd_avx2/pattern_100x150.pgm -c heat_simd_avx2/pattern_100x150.pgm >>  100x150_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -L 0 -t heat_simd_avx2/pattern_100x150.pgm -c heat_simd_avx2/pattern_100x150.pgm >>  100x150_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -L 0 -t heat_simd_avx2/pattern_100x150.pgm -c heat_simd_avx2/pattern_100x150.pgm >>  100x150_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -L 0 -t heat_simd_avx2/pattern_100x150.pgm -c heat_simd_avx2/pattern_100x150.pgm >>  100x150_avx2_big_output
+echo " 2 ========================================================================="
+
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -L 0 -n 300 -m 300 -t pat2_300x300.pgm -c pat2_300x300.pgm >>  300x300_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -L 0 -n 300 -m 300 -t pat2_300x300.pgm -c pat2_300x300.pgm >>  300x300_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -L 0  -n 300 -m 300 -t pat2_300x300.pgm -c pat2_300x300.pgm >>  300x300_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -L 0  -n 300 -m 300 -t pat2_300x300.pgm -c pat2_300x300.pgm >>  300x300_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -L 0  -n 300 -m 300 -t pat2_300x300.pgm -c pat2_300x300.pgm >>  300x300_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -L 0  -n 300 -m 300 -t pat2_300x300.pgm -c pat2_300x300.pgm >>  300x300_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -L 0  -n 300 -m 300 -t pat2_300x300.pgm -c pat2_300x300.pgm >>  300x300_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -L 0  -n 300 -m 300 -t pat2_300x300.pgm -c pat2_300x300.pgm >>  300x300_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -L 0  -n 300 -m 300 -t pat2_300x300.pgm -c pat2_300x300.pgm >>  300x300_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -L 0  -n 300 -m 300 -t pat2_300x300.pgm -c pat2_300x300.pgm >>  300x300_avx2_big_output
+
+
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_avx2_big_output
+sudo nice -n -20 heat_simd_avx2_big/heat_simd_avx2_big -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_avx2_big_output
+
+
+
+sudo nice -n -20 heat_simd_pragma_gcc/heat_simd_pragma_gcc -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_gcc_output
+sudo nice -n -20 heat_simd_pragma_gcc/heat_simd_pragma_gcc -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_gcc_output
+sudo nice -n -20 heat_simd_pragma_gcc/heat_simd_pragma_gcc -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_gcc_output
+sudo nice -n -20 heat_simd_pragma_gcc/heat_simd_pragma_gcc -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_gcc_output
+sudo nice -n -20 heat_simd_pragma_gcc/heat_simd_pragma_gcc -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_gcc_output
+sudo nice -n -20 heat_simd_pragma_gcc/heat_simd_pragma_gcc -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_gcc_output
+sudo nice -n -20 heat_simd_pragma_gcc/heat_simd_pragma_gcc -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_gcc_output
+sudo nice -n -20 heat_simd_pragma_gcc/heat_simd_pragma_gcc -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_gcc_output
+sudo nice -n -20 heat_simd_pragma_gcc/heat_simd_pragma_gcc -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_gcc_output
+sudo nice -n -20 heat_simd_pragma_gcc/heat_simd_pragma_gcc -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_gcc_output
+
+
+echo " AVX SIMPLE ========================================================================="
+
+
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -L 0 -t heat_simd_avx2/pattern_100x150.pgm -c heat_simd_avx2/pattern_100x150.pgm >> 100x150_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -L 0 -t heat_simd_avx2/pattern_100x150.pgm -c heat_simd_avx2/pattern_100x150.pgm >> 100x150_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -L 0 -t heat_simd_avx2/pattern_100x150.pgm -c heat_simd_avx2/pattern_100x150.pgm >> 100x150_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -L 0 -t heat_simd_avx2/pattern_100x150.pgm -c heat_simd_avx2/pattern_100x150.pgm >> 100x150_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -L 0 -t heat_simd_avx2/pattern_100x150.pgm -c heat_simd_avx2/pattern_100x150.pgm >> 100x150_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -L 0 -t heat_simd_avx2/pattern_100x150.pgm -c heat_simd_avx2/pattern_100x150.pgm >> 100x150_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -L 0 -t heat_simd_avx2/pattern_100x150.pgm -c heat_simd_avx2/pattern_100x150.pgm >> 100x150_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -L 0 -t heat_simd_avx2/pattern_100x150.pgm -c heat_simd_avx2/pattern_100x150.pgm >> 100x150_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -L 0 -t heat_simd_avx2/pattern_100x150.pgm -c heat_simd_avx2/pattern_100x150.pgm >> 100x150_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -L 0 -t heat_simd_avx2/pattern_100x150.pgm -c heat_simd_avx2/pattern_100x150.pgm >> 100x150_avx2_output
+
+
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -n 1000 -m 1000 -c ./pat2_1000x1000.pgm -t ./pat2_1000x1000.pgm >> 1000x1000_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -n 1000 -m 1000 -c ./pat2_1000x1000.pgm -t ./pat2_1000x1000.pgm >> 1000x1000_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -n 1000 -m 1000 -c ./pat2_1000x1000.pgm -t ./pat2_1000x1000.pgm >> 1000x1000_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -n 1000 -m 1000 -c ./pat2_1000x1000.pgm -t ./pat2_1000x1000.pgm >> 1000x1000_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -n 1000 -m 1000 -c ./pat2_1000x1000.pgm -t ./pat2_1000x1000.pgm >> 1000x1000_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -n 1000 -m 1000 -c ./pat2_1000x1000.pgm -t ./pat2_1000x1000.pgm >> 1000x1000_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -n 1000 -m 1000 -c ./pat2_1000x1000.pgm -t ./pat2_1000x1000.pgm >> 1000x1000_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -n 1000 -m 1000 -c ./pat2_1000x1000.pgm -t ./pat2_1000x1000.pgm >> 1000x1000_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -n 1000 -m 1000 -c ./pat2_1000x1000.pgm -t ./pat2_1000x1000.pgm >> 1000x1000_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -n 1000 -m 1000 -c ./pat2_1000x1000.pgm -t ./pat2_1000x1000.pgm >> 1000x1000_avx2_output
+
+
+
+
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -L 0 -n 300 -m 300 -t pat2_300x300.pgm -c pat2_300x300.pgm >>  300x300_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -L 0 -n 300 -m 300 -t pat2_300x300.pgm -c pat2_300x300.pgm >>  300x300_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -L 0 -n 300 -m 300 -t pat2_300x300.pgm -c pat2_300x300.pgm >>  300x300_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -L 0 -n 300 -m 300 -t pat2_300x300.pgm -c pat2_300x300.pgm >>  300x300_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -L 0 -n 300 -m 300 -t pat2_300x300.pgm -c pat2_300x300.pgm >>  300x300_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -L 0 -n 300 -m 300 -t pat2_300x300.pgm -c pat2_300x300.pgm >>  300x300_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -L 0 -n 300 -m 300 -t pat2_300x300.pgm -c pat2_300x300.pgm >>  300x300_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -L 0 -n 300 -m 300 -t pat2_300x300.pgm -c pat2_300x300.pgm >>  300x300_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -L 0 -n 300 -m 300 -t pat2_300x300.pgm -c pat2_300x300.pgm >>  300x300_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -L 0 -n 300 -m 300 -t pat2_300x300.pgm -c pat2_300x300.pgm >>  300x300_avx2_output
+
+
+
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_avx2_output
+sudo nice -n -20 heat_simd_avx2/heat_simd_avx2 -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_avx2_output
+
+
+
+
+sudo nice -n -20 heat_simd_pragma_clang/heat_simd_pragma_clang -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_clang_output
+sudo nice -n -20 heat_simd_pragma_clang/heat_simd_pragma_clang -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_clang_output
+sudo nice -n -20 heat_simd_pragma_clang/heat_simd_pragma_clang -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_clang_output
+sudo nice -n -20 heat_simd_pragma_clang/heat_simd_pragma_clang -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_clang_output
+sudo nice -n -20 heat_simd_pragma_clang/heat_simd_pragma_clang -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_clang_output
+sudo nice -n -20 heat_simd_pragma_clang/heat_simd_pragma_clang -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_clang_output
+sudo nice -n -20 heat_simd_pragma_clang/heat_simd_pragma_clang -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_clang_output
+sudo nice -n -20 heat_simd_pragma_clang/heat_simd_pragma_clang -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_clang_output
+sudo nice -n -20 heat_simd_pragma_clang/heat_simd_pragma_clang -n 2000 -m 2000 -c ./big.pgm -t ./big.pgm >> 2000x2000_clang_output
+

@@ -1,1 +1,2 @@
 *.o
+heat_simd_avx2

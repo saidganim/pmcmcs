@@ -1,0 +1,2 @@
+*.o
+heat_simd_sse4_big
