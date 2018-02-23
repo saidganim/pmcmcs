@@ -123,5 +123,7 @@ void do_compute(const struct parameters* p, struct results *r)
 	r->niter = iter - 1;
 	r->tavg = sum /(N * M);
 	r->maxdiff = maxdiff;
+	free(temp_tmp);
+	free(temp_init);
 	return;
 }

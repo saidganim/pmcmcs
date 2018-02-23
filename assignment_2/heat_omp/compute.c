@@ -104,5 +104,7 @@ void do_compute(const struct parameters* p, struct results *r)
 			   report_results(p, r);
 		}
 	}
+	free(temp_tmp);
+	free(temp_init);
 	return;
 }

@@ -241,5 +241,7 @@ void do_compute(const struct parameters* p, struct results *r)
 	r->niter = iter - 1;
 	r->tavg = (sum + maxdiff_vect_mem[0] + maxdiff_vect_mem[1]) /(N * M);
 	r->maxdiff = maxdiff;
+	free(temp_tmp);
+	free(temp_init);
 	return;
 }
