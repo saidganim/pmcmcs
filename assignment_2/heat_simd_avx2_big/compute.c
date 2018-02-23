@@ -24,6 +24,13 @@ static unsigned int N,M;
 
 #define _index_macro(a, b, c) a[M * (b) + (c)]
 
+static inline __m256d max_from_vect(__m256d array[], int n){
+		__m256d res = array[0];
+		for(int i = 1; i < n; ++i)
+			res = _mm256_max_pd(res, array[i]);
+		return res;
+}
+
 void do_compute(const struct parameters* p, struct results *r)
 {
 	struct timeval start, end;
@@ -38,6 +45,7 @@ void do_compute(const struct parameters* p, struct results *r)
 	double dig_nc = 1 /(sqrt(2) + 1) / 4;
 	int elems_per_iter = (256 / sizeof(double) / 8);
 	double maxdiff_vect_mem[elems_per_iter / 2];
+	int thread_num = omp_get_max_threads() / 2;
 	__m256d weighted_neighb_reg;
 	__m256d temp_init_reg;
 	__m256d temp_init_reg_clone;
@@ -50,7 +58,7 @@ void do_compute(const struct parameters* p, struct results *r)
 	__m256d temp_init_reg_d4;
 	__m256d temp_init_reg_bottom;
 	__m256d temp_init_reg_bottom_clone;
-	__m256d maxdiff_vect[2];
+	__m256d maxdiff_vect[thread_num];
 	__m256d maxdiff_vect2;
 	__m128d tmp_reg;
 	__m256d direct_sum;
@@ -61,7 +69,7 @@ void do_compute(const struct parameters* p, struct results *r)
 	__m256d const1_reg;
 	__m256d coef1_reg;
 	__m256d coef2_reg;
-	omp_set_num_threads(2);
+	omp_set_num_threads(thread_num);
 	const1_reg = _mm256_set1_pd(1.);
 	coef1_reg = _mm256_set1_pd(dir_nc);
 	coef2_reg = _mm256_set1_pd(dig_nc);
@@ -177,7 +185,7 @@ void do_compute(const struct parameters* p, struct results *r)
 					maxdiff = fabs((*temp_init)[i][j] - (*temp_tmp)[i][j]);
 			}
 		}
-		maxdiff_vect2 =_mm256_max_pd(maxdiff_vect[0], maxdiff_vect[1])  ;
+		maxdiff_vect2 =max_from_vect(maxdiff_vect, thread_num)  ;
 		tmp_reg = _mm_max_pd(_mm256_extractf128_pd(maxdiff_vect2, 0), _mm256_extractf128_pd(maxdiff_vect2, 1));
 		_mm_storeu_pd(maxdiff_vect_mem, tmp_reg);
 		maxdiff = max(maxdiff, max(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));

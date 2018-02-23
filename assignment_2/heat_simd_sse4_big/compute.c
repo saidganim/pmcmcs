@@ -23,6 +23,13 @@ static unsigned int N,M;
 	__typeof(b) _b = (b);\
 	(_a) < (_b) ? (_a) : (_b); })
 
+static inline __m128d max_from_vect(__m128d array[], int n){
+		__m128d res = array[0];
+		for(int i = 1; i < n; ++i)
+			res = _mm_max_pd(res, array[i]);
+		return res;
+}
+
 
 #define _index_macro(a, b, c) a[M * (b) + (c)]
 
@@ -183,7 +190,7 @@ void do_compute(const struct parameters* p, struct results *r)
 					maxdiff = fabs((*temp_init)[i][j] - (*temp_tmp)[i][j]);
 			}
 		}
-		maxdiff_vect2 =_mm_max_pd(maxdiff_vect[0], _mm_max_pd(maxdiff_vect[1], _mm_max_pd(maxdiff_vect[2], maxdiff_vect[3] ) ) )  ;
+		maxdiff_vect2 = max_from_vect(maxdiff_vect, thread_num);
 		_mm_storeu_pd(maxdiff_vect_mem, maxdiff_vect2);
 		maxdiff = max(maxdiff, max(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
 		// syncrhonizing init matrix and temporary one
