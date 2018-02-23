@@ -23,15 +23,14 @@ static unsigned int N,M;
 	__typeof(b) _b = (b);\
 	(_a) < (_b) ? (_a) : (_b); })
 
+#define _index_macro(a, b, c) a[M * (b) + (c)]
+
 static inline __m128d max_from_vect(__m128d array[], int n){
 		__m128d res = array[0];
 		for(int i = 1; i < n; ++i)
 			res = _mm_max_pd(res, array[i]);
 		return res;
 }
-
-
-#define _index_macro(a, b, c) a[M * (b) + (c)]
 
 void do_compute(const struct parameters* p, struct results *r)
 {
@@ -99,7 +98,8 @@ void do_compute(const struct parameters* p, struct results *r)
 	while(iter++ < p->maxiter && maxdiff > p->threshold){
 		// do computations;
 		maxdiff = 0.0;
-		for(int i = 0 ; i < thread_num; ++i)
+		#pragma omp parallel for
+		for(int i = 0 ; i < 2; ++i)
 			maxdiff_vect[i] = _mm_set1_pd(0.0);
 		// update most left and most right columns( cache suffers )
 		#pragma omp parallel for
@@ -167,10 +167,7 @@ void do_compute(const struct parameters* p, struct results *r)
 				temp_init_reg = _mm_add_pd(temp_init_reg, diag_sum);
 				_mm_storeu_pd(&(*temp_tmp)[i][j], temp_init_reg);
 				double_temp_reg = _mm_sub_pd(temp_init_reg, temp_init_reg_clone);
-				//#pragma omp critical
-				{
 					maxdiff_vect[thread_id] = _mm_max_pd(maxdiff_vect[thread_id], _mm_max_pd(_mm_sub_pd(_mm_set1_pd(0.0), double_temp_reg), double_temp_reg));
-				}
 			}
 
 			for(int j = (M - M % elems_per_iter) + 1; j <= M ; ++j){
@@ -190,7 +187,7 @@ void do_compute(const struct parameters* p, struct results *r)
 					maxdiff = fabs((*temp_init)[i][j] - (*temp_tmp)[i][j]);
 			}
 		}
-		maxdiff_vect2 = max_from_vect(maxdiff_vect, thread_num);
+		maxdiff_vect2 =max_from_vect(maxdiff_vect, thread_num)  ;
 		_mm_storeu_pd(maxdiff_vect_mem, maxdiff_vect2);
 		maxdiff = max(maxdiff, max(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
 		// syncrhonizing init matrix and temporary one
