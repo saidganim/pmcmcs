@@ -24,7 +24,8 @@ void do_compute(const struct parameters* p, struct results *r)
 	double dig_nc = 1 /(sqrt(2) + 1) / 4;
 	N = p->N;
 	M = p->M;
-	omp_set_num_threads(2);
+	int thread_num = omp_get_max_threads() / 2;
+	omp_set_num_threads(thread_num);
 	//copying init matrix
 	for(int i = 0; i < N; ++i)
 		memcpy(&(*temp_init)[i + 1][1], &_index_macro(p->tinit, i, 0), M * sizeof(double));
