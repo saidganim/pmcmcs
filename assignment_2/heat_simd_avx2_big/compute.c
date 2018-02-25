@@ -95,6 +95,9 @@ void do_compute(const struct parameters* p, struct results *r)
 
 	gettimeofday(&start, 0);
 	while(iter++ < p->maxiter && maxdiff > p->threshold){
+		gettimeofday(&end, 0);
+		r->time = (end.tv_sec + (end.tv_usec / 1000000.0)) - (start.tv_sec + (start.tv_usec / 1000000.0));
+		printf("ITERATION $%d -  TIME:%f\n", iter, r->time);
 		// do computations;
 		maxdiff = 0.0;
 		for(int i = 0 ; i < 2; ++i)

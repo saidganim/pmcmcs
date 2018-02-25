@@ -93,16 +93,16 @@ void do_compute(const struct parameters* p, struct results *r)
 	(*temp_tmp)[0][M + 1] = (*temp_init)[0][M + 1] = (*temp_init)[0][1];
 	(*temp_tmp)[N + 1][0] = (*temp_init)[N + 1][0] = (*temp_init)[N][M];
 	(*temp_tmp)[N + 1][M + 1] = (*temp_init)[N + 1][M + 1] = (*temp_init)[N + 1][1];
-
 	gettimeofday(&start, 0);
-	while(iter++ < p->maxiter && maxdiff > p->threshold){
+	#pragma omp parallel
+	while(iter < p->maxiter && maxdiff > p->threshold){
+		int thread_id = omp_get_thread_num();
 		// do computations;
+		#pragma omp barrier
 		maxdiff = 0.0;
-		#pragma omp parallel for
-		for(int i = 0 ; i < 2; ++i)
-			maxdiff_vect[i] = _mm_set1_pd(0.0);
+		maxdiff_vect[thread_id] = _mm_set1_pd(0.0);
 		// update most left and most right columns( cache suffers )
-		#pragma omp parallel for
+		#pragma omp for
 		for(int i = 0; i < N; ++i){
 			(*temp_init)[i + 1][0] = (*temp_init)[i + 1][M]; // move last column to 0's
 			(*temp_init)[i + 1][M + 1] = (*temp_init)[i + 1][1]; // move first column to (M+1)'s
@@ -111,9 +111,8 @@ void do_compute(const struct parameters* p, struct results *r)
 		}
 
 		// finally start computations
-		#pragma omp parallel for reduction (max: maxdiff)
+		#pragma omp for reduction (max: maxdiff)
 		for(int i = 1; i <= N; ++i){
-			int thread_id = omp_get_thread_num();
 			__m128d weighted_neighb_reg;
 			__m128d temp_init_reg;
 			__m128d temp_init_reg_clone;
@@ -183,20 +182,26 @@ void do_compute(const struct parameters* p, struct results *r)
 				weighted_neighb *= (1 - _index_macro(p->conductivity, i - 1, j - 1));
 				(*temp_tmp)[i][j] = (*temp_init)[i][j] * _index_macro(p->conductivity, i - 1, j - 1);
 				(*temp_tmp)[i][j] += weighted_neighb;
+				//#pragma omp critical // TODO : Optimize this ugly thing in future
 				if(fabs((*temp_init)[i][j] - (*temp_tmp)[i][j]) >  maxdiff)
 					maxdiff = fabs((*temp_init)[i][j] - (*temp_tmp)[i][j]);
 			}
 		}
-		maxdiff_vect2 =max_from_vect(maxdiff_vect, thread_num)  ;
-		_mm_storeu_pd(maxdiff_vect_mem, maxdiff_vect2);
-		maxdiff = max(maxdiff, max(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
 		// syncrhonizing init matrix and temporary one
 		// for(int i = 0; i < N; ++i)
 		// 	memcpy( &(*temp_init)[i + 1][1], &(*temp_tmp)[i][0], M * sizeof(double));
-		double* tmp_tmp = temp_init;
-		temp_init = temp_tmp;
-		temp_tmp = tmp_tmp;
-
+		#pragma omp single
+		{
+			++iter;
+			maxdiff_vect2 =max_from_vect(maxdiff_vect, thread_num)  ;
+			_mm_storeu_pd(maxdiff_vect_mem, maxdiff_vect2);
+			maxdiff = max(maxdiff, max(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
+			double* tmp_tmp = temp_init;
+			temp_init = temp_tmp;
+			temp_tmp = tmp_tmp;
+		}
+		#pragma omp single nowait
+		{
 			if(iter % p->period == 0){
 				double local_sum = 0;
 				r->tmin = r->tmax = (*temp_tmp)[1][1];
@@ -235,9 +240,11 @@ void do_compute(const struct parameters* p, struct results *r)
 				r->maxdiff = maxdiff;
 				report_results(p, r);
 			}
+		}
 
 	}
 
+	gettimeofday(&end, 0);
 	r->tmin = r->tmax = (*temp_tmp)[1][1];
 	maxdiff_vect2 = _mm_set1_pd((*temp_tmp)[1][1]);
 	temp_init_reg_clone = _mm_set1_pd((*temp_tmp)[1][1]);
@@ -267,9 +274,8 @@ void do_compute(const struct parameters* p, struct results *r)
 
 	_mm_storeu_pd(maxdiff_vect_mem, direct_sum);
 
-	gettimeofday(&end, 0);
 	r->time = (end.tv_sec + (end.tv_usec / 1000000.0)) - (start.tv_sec + (start.tv_usec / 1000000.0));
-	r->niter = iter - 1;
+	r->niter = iter;
 	r->tavg = (sum + maxdiff_vect_mem[0] + maxdiff_vect_mem[1]) /(N * M);
 	r->maxdiff = maxdiff;
 	free(temp_tmp);
