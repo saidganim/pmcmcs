@@ -94,7 +94,26 @@ void do_compute(const struct parameters* p, struct results *r)
 	(*temp_tmp)[N + 1][0] = (*temp_init)[N + 1][0] = (*temp_init)[N][M];
 	(*temp_tmp)[N + 1][M + 1] = (*temp_init)[N + 1][M + 1] = (*temp_init)[N + 1][1];
 	gettimeofday(&start, 0);
-	#pragma omp parallel
+	#pragma omp parallel private(\
+		weighted_neighb_reg, \
+		temp_init_reg, \
+		temp_init_reg_clone, \
+		temp_init_reg_left, \
+		temp_init_reg_right, \
+		temp_init_reg_top, \
+		temp_init_reg_d1, \
+		temp_init_reg_d2, \
+		temp_init_reg_d3, \
+		temp_init_reg_d4, \
+		temp_init_reg_bottom, \
+		temp_init_reg_bottom_clone, \
+		tmp_reg, \
+		direct_sum, \
+		diag_sum, \
+		cond_reg, \
+		rev_cond_reg, \
+		double_temp_reg\
+	)
 	while(iter < p->maxiter && maxdiff > p->threshold){
 		int thread_id = omp_get_thread_num();
 		// do computations;
@@ -113,24 +132,6 @@ void do_compute(const struct parameters* p, struct results *r)
 		// finally start computations
 		#pragma omp for reduction (max: maxdiff)
 		for(int i = 1; i <= N; ++i){
-			__m128d weighted_neighb_reg;
-			__m128d temp_init_reg;
-			__m128d temp_init_reg_clone;
-			__m128d temp_init_reg_left;
-			__m128d temp_init_reg_right;
-			__m128d temp_init_reg_top;
-			__m128d temp_init_reg_d1;
-			__m128d temp_init_reg_d2;
-			__m128d temp_init_reg_d3;
-			__m128d temp_init_reg_d4;
-			__m128d temp_init_reg_bottom;
-			__m128d temp_init_reg_bottom_clone;
-			__m128d tmp_reg;
-			__m128d direct_sum;
-			__m128d diag_sum;
-			__m128d cond_reg;
-			__m128d rev_cond_reg;
-			__m128d double_temp_reg;
 			for(int j = 1; j <= (M - M % elems_per_iter) ; j += elems_per_iter){
 				cond_reg = _mm_loadu_pd(&_index_macro(p->conductivity, i - 1, j - 1));
 				rev_cond_reg = _mm_sub_pd(const1_reg, cond_reg);

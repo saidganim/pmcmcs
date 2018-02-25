@@ -69,7 +69,7 @@ void do_compute(const struct parameters* p, struct results *r)
 	while(iter < p->maxiter && maxdiff > p->threshold){
 		// do computations;
 		int thread_id = omp_get_thread_num();
-		#pragma omp barrier  //  funny right? 
+		#pragma omp barrier  //  funny right?
 		maxdiff = 0.0;
 		// update most left and most right columns( cache suffers )
 		#pragma omp for nowait
@@ -96,7 +96,7 @@ void do_compute(const struct parameters* p, struct results *r)
 				weighted_neighb *= (1 - _index_macro(p->conductivity, i - 1, j - 1));
 				(*temp_tmp)[i][j] = (*temp_init)[i][j] * _index_macro(p->conductivity, i - 1, j - 1);
 				(*temp_tmp)[i][j] += weighted_neighb;
-				double abs_diff = fabs((*temp_init)[i][j] - (*temp_tmp)[i][j]); 
+				double abs_diff = fabs((*temp_init)[i][j] - (*temp_tmp)[i][j]);
 				if(abs_diff > maxdiff)
 					maxdiff = abs_diff;
 			}
@@ -104,15 +104,16 @@ void do_compute(const struct parameters* p, struct results *r)
 		// syncrhonizing init matrix and temporary one
 		#pragma omp single
 		{
-		double* tmp_tmp = temp_init;
-		temp_init = temp_tmp;
-		temp_tmp = tmp_tmp;
-		//maxdiff = max_from_array(maxdiff_threads, thread_num);
-		++iter;
+			gettimeofday(&end, 0);
+			double* tmp_tmp = temp_init;
+
+			temp_init = temp_tmp;
+			temp_tmp = tmp_tmp;
+			//maxdiff = max_from_array(maxdiff_threads, thread_num);
+			++iter;
 		}
 		//#pragma omp single nowait
 		if((iter % p->period) == 0 || !(iter < p->maxiter && maxdiff > p->threshold)){
-			gettimeofday(&end, 0);
 			r->tmin = r->tmax = (*temp_tmp)[1][1];
 			#pragma omp for reduction(+: local_sum)
 			for(int i = 1; i <= N; ++i){
