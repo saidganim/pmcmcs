@@ -119,7 +119,7 @@ void do_compute(const struct parameters* p, struct results *r)
 		// do computations;
 		#pragma omp barrier
 		maxdiff = 0.0;
-		maxdiff_vect[thread_id] = _mm_set1_pd(0.0);
+		// maxdiff_vect[thread_id] = _mm_set1_pd(0.0);
 		// update most left and most right columns( cache suffers )
 		#pragma omp for
 		for(int i = 0; i < N; ++i){
@@ -166,8 +166,13 @@ void do_compute(const struct parameters* p, struct results *r)
 				temp_init_reg = _mm_mul_pd(temp_init_reg, cond_reg);
 				temp_init_reg = _mm_add_pd(temp_init_reg, diag_sum);
 				_mm_storeu_pd(&(*temp_tmp)[i][j], temp_init_reg);
-				double_temp_reg = _mm_sub_pd(temp_init_reg, temp_init_reg_clone);
-					maxdiff_vect[thread_id] = _mm_max_pd(maxdiff_vect[thread_id], _mm_max_pd(_mm_sub_pd(_mm_set1_pd(0.0), double_temp_reg), double_temp_reg));
+				for( int elem_i = 0 ; elem_i < elems_per_iter; ++elem_i){
+					if(maxdiff < fabs((*temp_tmp)[i][j + elem_i] - (*temp_init)[i][j + elem_i]))
+						maxdiff = fabs((*temp_tmp)[i][j + elem_i] - (*temp_init)[i][j + elem_i]);
+				}
+
+				// double_temp_reg = _mm_sub_pd(temp_init_reg, temp_init_reg_clone);
+				// maxdiff_vect[thread_id] = _mm_max_pd(maxdiff_vect[thread_id], _mm_max_pd(_mm_sub_pd(_mm_set1_pd(0.0), double_temp_reg), double_temp_reg));
 			}
 
 			for(int j = (M - M % elems_per_iter) + 1; j <= M ; ++j){
@@ -194,9 +199,9 @@ void do_compute(const struct parameters* p, struct results *r)
 		#pragma omp single
 		{
 			++iter;
-			maxdiff_vect2 =max_from_vect(maxdiff_vect, thread_num)  ;
-			_mm_storeu_pd(maxdiff_vect_mem, maxdiff_vect2);
-			maxdiff = max(maxdiff, max(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
+			// maxdiff_vect2 =max_from_vect(maxdiff_vect, thread_num)  ;
+			// _mm_storeu_pd(maxdiff_vect_mem, maxdiff_vect2);
+			// maxdiff = max(maxdiff, max(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
 			double* tmp_tmp = temp_init;
 			temp_init = temp_tmp;
 			temp_tmp = tmp_tmp;
