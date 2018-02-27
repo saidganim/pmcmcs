@@ -4,16 +4,54 @@
 #include <getopt.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <string.h>
 #include <omp.h>
+#include <time.h>
+#include <sys/time.h>
 
 /* Ordering of the vector */
 typedef enum Ordering {ASCENDING, DESCENDING, RANDOM} Order;
 
-int debug = 1;
+int debug = 0;
+
+#define min(a,b) \
+({\
+	__typeof(a) _a = (a);\
+	__typeof(b) _b = (b);\
+	(_a) < (_b) ? (_a) : (_b); })
+
+
+void __merge(int *v, long l, long limit, int* tmp){
+  int *left = v, *right = v + l/2;
+  int i = 0;
+  while(i < limit){
+    if(left - v >= l/2)
+      tmp[i++] = *(right++);
+    else if(right - v >= limit)
+      tmp[i++] = *(left++);
+    else if(*left > *right)
+      tmp[i++] = *(right++);
+    else
+      tmp[i++] = *(left++);
+  }
+  // printf("INSERTED %d\n", tmp[i - 1]);
+	memcpy(v, tmp, limit * sizeof(int));
+}
 
 /* Sort vector v of l elements using mergesort */
 void msort(int *v, long l){
-
+	int *tmp = malloc(sizeof(int) * l);
+  unsigned int thread_num = omp_get_max_threads();
+	#pragma omp parallel
+	{
+		for(int block = 1; block < l; block += block){
+			#pragma omp for schedule(static)
+			for(int blocki = 0; blocki < l; blocki += 2 * block){
+				__merge(v + blocki, 2 * block, min( 2 * block, l - blocki), tmp);
+			}
+		}
+	}
+	free(tmp);
 }
 
 void print_v(int *v, long l) {
@@ -31,9 +69,11 @@ int main(int argc, char **argv) {
 
   int c;
   int seed = 42;
-  long length = 1e4;
-  Order order = ASCENDING;
+  long length = 1e4 * 1e5;
+  Order order = DESCENDING;
   int *vector;
+  struct timeval start, end;
+  double time;
 
   /* Read command-line options. */
   while((c = getopt(argc, argv, "adrgl:s:")) != -1) {
@@ -92,7 +132,7 @@ int main(int argc, char **argv) {
     case DESCENDING:
       for(long i = 0; i < length; i++) {
         vector[i] = (int)(length - i);
-      } 
+      }
       break;
     case RANDOM:
       for(long i = 0; i < length; i++) {
@@ -106,7 +146,11 @@ int main(int argc, char **argv) {
   }
 
   /* Sort */
+  gettimeofday(&start, 0);
   msort(vector, length);
+  gettimeofday(&end, 0);
+  time = (end.tv_sec + (end.tv_usec / 1000000.0)) - (start.tv_sec + (start.tv_usec / 1000000.0));
+  printf("TIME SPENT ON SORTING IS %f\n", time);
 
   if(debug) {
     print_v(vector, length);
@@ -114,4 +158,3 @@ int main(int argc, char **argv) {
 
   return 0;
 }
-
