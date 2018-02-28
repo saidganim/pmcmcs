@@ -201,6 +201,7 @@ void do_compute(const struct parameters* p, struct results *r)
 			maxdiff_vect2 =max_from_vect(maxdiff_vect, thread_num)  ;
 			_mm_storeu_pd(maxdiff_vect_mem, maxdiff_vect2);
 			maxdiff = max(maxdiff, max(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
+			gettimeofday(&end, 0);
 		}
 		#pragma omp single nowait
 		{
@@ -241,8 +242,6 @@ void do_compute(const struct parameters* p, struct results *r)
 			r->tmin = min(r->tmin, min(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
 
 			_mm_storeu_pd(maxdiff_vect_mem, direct_sum);
-			#pragma omp single
-			gettimeofday(&end, 0);
 			r->time = (end.tv_sec + (end.tv_usec / 1000000.0)) - (start.tv_sec + (start.tv_usec / 1000000.0));
 			r->niter = iter;
 			r->tavg = (local_sum + maxdiff_vect_mem[0] + maxdiff_vect_mem[1]) /(N * M);

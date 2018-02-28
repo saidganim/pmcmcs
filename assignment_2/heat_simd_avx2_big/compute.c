@@ -187,19 +187,23 @@ void do_compute(const struct parameters* p, struct results *r)
 					maxdiff = fabs((*temp_init)[i][j] - (*temp_tmp)[i][j]);
 			}
 		}
-		maxdiff_vect2 =max_from_vect(maxdiff_vect, thread_num)  ;
-		tmp_reg = _mm_max_pd(_mm256_extractf128_pd(maxdiff_vect2, 0), _mm256_extractf128_pd(maxdiff_vect2, 1));
-		_mm_storeu_pd(maxdiff_vect_mem, tmp_reg);
-		maxdiff = max(maxdiff, max(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
 		// syncrhonizing init matrix and temporary one
 		// for(int i = 0; i < N; ++i)
 		// 	memcpy( &(*temp_init)[i + 1][1], &(*temp_tmp)[i][0], M * sizeof(double));
 		#pragma omp single
 		{
+			maxdiff_vect2 =max_from_vect(maxdiff_vect, thread_num)  ;
+			tmp_reg = _mm_max_pd(_mm256_extractf128_pd(maxdiff_vect2, 0), _mm256_extractf128_pd(maxdiff_vect2, 1));
+			_mm_storeu_pd(maxdiff_vect_mem, tmp_reg);
+			maxdiff = max(maxdiff, max(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
+			++iter;
+		}
+
+		#pragma omp single nowait
+		{
 			double* tmp_tmp = temp_init;
 			temp_init = temp_tmp;
 			temp_tmp = tmp_tmp;
-			++iter;
 		}
 
 			if(iter % p->period == 0){

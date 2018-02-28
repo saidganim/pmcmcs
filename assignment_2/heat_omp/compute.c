@@ -72,7 +72,7 @@ void do_compute(const struct parameters* p, struct results *r)
 		#pragma omp barrier  //  funny right?
 		maxdiff = 0.0;
 		// update most left and most right columns( cache suffers )
-		#pragma omp for nowait
+		#pragma omp for
 		for(int i = 0; i < N; ++i){
 			(*temp_init)[i + 1][0] = (*temp_init)[i + 1][M]; // move last column to 0's
 			(*temp_init)[i + 1][M + 1] = (*temp_init)[i + 1][1]; // move first column to (M+1)'s
