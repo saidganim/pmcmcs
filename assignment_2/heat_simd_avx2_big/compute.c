@@ -94,16 +94,15 @@ void do_compute(const struct parameters* p, struct results *r)
 	(*temp_tmp)[N + 1][M + 1] = (*temp_init)[N + 1][M + 1] = (*temp_init)[N + 1][1];
 
 	gettimeofday(&start, 0);
-	while(iter++ < p->maxiter && maxdiff > p->threshold){
-		gettimeofday(&end, 0);
-		r->time = (end.tv_sec + (end.tv_usec / 1000000.0)) - (start.tv_sec + (start.tv_usec / 1000000.0));
-		printf("ITERATION $%d -  TIME:%f\n", iter, r->time);
+	#pragma omp parallel
+	while(iter < p->maxiter && maxdiff > p->threshold){
 		// do computations;
+		#pragma omp barrier
 		maxdiff = 0.0;
 		for(int i = 0 ; i < 2; ++i)
 			maxdiff_vect[i] = _mm256_set1_pd(0.0);
 		// update most left and most right columns( cache suffers )
-		#pragma omp parallel for
+		#pragma omp for
 		for(int i = 0; i < N; ++i){
 			(*temp_init)[i + 1][0] = (*temp_init)[i + 1][M]; // move last column to 0's
 			(*temp_init)[i + 1][M + 1] = (*temp_init)[i + 1][1]; // move first column to (M+1)'s
@@ -112,7 +111,7 @@ void do_compute(const struct parameters* p, struct results *r)
 		}
 
 		// finally start computations
-		#pragma omp parallel for reduction (max: maxdiff)
+		#pragma omp for reduction (max: maxdiff)
 		for(int i = 1; i <= N; ++i){
 			int thread_id = omp_get_thread_num();
 			__m256d weighted_neighb_reg;
@@ -195,9 +194,13 @@ void do_compute(const struct parameters* p, struct results *r)
 		// syncrhonizing init matrix and temporary one
 		// for(int i = 0; i < N; ++i)
 		// 	memcpy( &(*temp_init)[i + 1][1], &(*temp_tmp)[i][0], M * sizeof(double));
-		double* tmp_tmp = temp_init;
-		temp_init = temp_tmp;
-		temp_tmp = tmp_tmp;
+		#pragma omp single
+		{
+			double* tmp_tmp = temp_init;
+			temp_init = temp_tmp;
+			temp_tmp = tmp_tmp;
+			++iter;
+		}
 
 			if(iter % p->period == 0){
 				double local_sum = 0;
@@ -277,7 +280,7 @@ void do_compute(const struct parameters* p, struct results *r)
 
 	gettimeofday(&end, 0);
 	r->time = (end.tv_sec + (end.tv_usec / 1000000.0)) - (start.tv_sec + (start.tv_usec / 1000000.0));
-	r->niter = iter - 1;
+	r->niter = iter;
 	r->tavg = (sum + maxdiff_vect_mem[0] + maxdiff_vect_mem[1]) /(N * M);
 	r->maxdiff = maxdiff;
 	free(temp_tmp);

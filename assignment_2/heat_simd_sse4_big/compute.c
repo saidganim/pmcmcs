@@ -119,7 +119,7 @@ void do_compute(const struct parameters* p, struct results *r)
 		// do computations;
 		#pragma omp barrier
 		maxdiff = 0.0;
-		// maxdiff_vect[thread_id] = _mm_set1_pd(0.0);
+		maxdiff_vect[thread_id] = _mm_set1_pd(0.0);
 		// update most left and most right columns( cache suffers )
 		#pragma omp for
 		for(int i = 0; i < N; ++i){
@@ -166,13 +166,13 @@ void do_compute(const struct parameters* p, struct results *r)
 				temp_init_reg = _mm_mul_pd(temp_init_reg, cond_reg);
 				temp_init_reg = _mm_add_pd(temp_init_reg, diag_sum);
 				_mm_storeu_pd(&(*temp_tmp)[i][j], temp_init_reg);
-				for( int elem_i = 0 ; elem_i < elems_per_iter; ++elem_i){
-					if(maxdiff < fabs((*temp_tmp)[i][j + elem_i] - (*temp_init)[i][j + elem_i]))
-						maxdiff = fabs((*temp_tmp)[i][j + elem_i] - (*temp_init)[i][j + elem_i]);
-				}
+				// for( int elem_i = 0 ; elem_i < elems_per_iter; ++elem_i){
+				// 	if(maxdiff < fabs((*temp_tmp)[i][j + elem_i] - (*temp_init)[i][j + elem_i]))
+				// 		maxdiff = fabs((*temp_tmp)[i][j + elem_i] - (*temp_init)[i][j + elem_i]);
+				// }
 
-				// double_temp_reg = _mm_sub_pd(temp_init_reg, temp_init_reg_clone);
-				// maxdiff_vect[thread_id] = _mm_max_pd(maxdiff_vect[thread_id], _mm_max_pd(_mm_sub_pd(_mm_set1_pd(0.0), double_temp_reg), double_temp_reg));
+				double_temp_reg = _mm_sub_pd(temp_init_reg, temp_init_reg_clone);
+				maxdiff_vect[thread_id] = _mm_max_pd(maxdiff_vect[thread_id], _mm_max_pd(_mm_sub_pd(_mm_set1_pd(0.0), double_temp_reg), double_temp_reg));
 			}
 
 			for(int j = (M - M % elems_per_iter) + 1; j <= M ; ++j){
@@ -188,7 +188,6 @@ void do_compute(const struct parameters* p, struct results *r)
 				weighted_neighb *= (1 - _index_macro(p->conductivity, i - 1, j - 1));
 				(*temp_tmp)[i][j] = (*temp_init)[i][j] * _index_macro(p->conductivity, i - 1, j - 1);
 				(*temp_tmp)[i][j] += weighted_neighb;
-				//#pragma omp critical // TODO : Optimize this ugly thing in future
 				if(fabs((*temp_init)[i][j] - (*temp_tmp)[i][j]) >  maxdiff)
 					maxdiff = fabs((*temp_init)[i][j] - (*temp_tmp)[i][j]);
 			}
@@ -199,53 +198,57 @@ void do_compute(const struct parameters* p, struct results *r)
 		#pragma omp single
 		{
 			++iter;
-			// maxdiff_vect2 =max_from_vect(maxdiff_vect, thread_num)  ;
-			// _mm_storeu_pd(maxdiff_vect_mem, maxdiff_vect2);
-			// maxdiff = max(maxdiff, max(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
+			maxdiff_vect2 =max_from_vect(maxdiff_vect, thread_num)  ;
+			_mm_storeu_pd(maxdiff_vect_mem, maxdiff_vect2);
+			maxdiff = max(maxdiff, max(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
+		}
+		#pragma omp single nowait
+		{
 			double* tmp_tmp = temp_init;
 			temp_init = temp_tmp;
 			temp_tmp = tmp_tmp;
 		}
-		#pragma omp single nowait
-		{
-			if(iter % p->period == 0){
-				double local_sum = 0;
-				r->tmin = r->tmax = (*temp_tmp)[1][1];
-				maxdiff_vect2 = _mm_set1_pd((*temp_tmp)[1][1]);
-				temp_init_reg_clone = _mm_set1_pd((*temp_tmp)[1][1]);
-				direct_sum = _mm_set1_pd(0);
-				for(int i = 1; i <= N; ++i){
-					for(int j = 1; j <= M - (M % elems_per_iter) ; j += elems_per_iter){
-						temp_init_reg =_mm_loadu_pd(&(*temp_init)[i][j]);
-						direct_sum = _mm_add_pd(direct_sum, temp_init_reg);
-						maxdiff_vect2 = _mm_max_pd(maxdiff_vect2, temp_init_reg);
-						temp_init_reg_clone = _mm_min_pd(temp_init_reg_clone, temp_init_reg);
-					}
+		// #pragma omp single nowait
 
-					for(int j = M - (M % elems_per_iter) + 1; j <= M ; ++j){
-						if((*temp_init)[i][j] > r->tmax)
-							r->tmax = (*temp_init)[i][j];
-						if((*temp_init)[i][j] < r->tmin)
-							r->tmin = (*temp_init)[i][j];
-						local_sum += (*temp_init)[i][j];
-					}
+		if(iter % p->period == 0){
+			double local_sum = 0;
+			r->tmin = r->tmax = (*temp_tmp)[1][1];
+			maxdiff_vect2 = _mm_set1_pd((*temp_tmp)[1][1]);
+			temp_init_reg_clone = _mm_set1_pd((*temp_tmp)[1][1]);
+			direct_sum = _mm_set1_pd(0);
+			#pragma omp for
+			for(int i = 1; i <= N; ++i){
+				for(int j = 1; j <= M - (M % elems_per_iter) ; j += elems_per_iter){
+					temp_init_reg =_mm_loadu_pd(&(*temp_init)[i][j]);
+					direct_sum = _mm_add_pd(direct_sum, temp_init_reg);
+					maxdiff_vect2 = _mm_max_pd(maxdiff_vect2, temp_init_reg);
+					temp_init_reg_clone = _mm_min_pd(temp_init_reg_clone, temp_init_reg);
 				}
 
-				_mm_storeu_pd(maxdiff_vect_mem, maxdiff_vect2);
-				r->tmax = max(r->tmax, max(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
-
-				_mm_storeu_pd(maxdiff_vect_mem, temp_init_reg_clone);
-				r->tmin = min(r->tmin, min(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
-
-				_mm_storeu_pd(maxdiff_vect_mem, direct_sum);
-
-				gettimeofday(&end, 0);
-				r->time = (end.tv_sec + (end.tv_usec / 1000000.0)) - (start.tv_sec + (start.tv_usec / 1000000.0));
-				r->niter = iter;
-				r->tavg = (local_sum + maxdiff_vect_mem[0] + maxdiff_vect_mem[1]) /(N * M);
-				r->maxdiff = maxdiff;
-				report_results(p, r);
+				for(int j = M - (M % elems_per_iter) + 1; j <= M ; ++j){
+					if((*temp_init)[i][j] > r->tmax)
+						r->tmax = (*temp_init)[i][j];
+					if((*temp_init)[i][j] < r->tmin)
+						r->tmin = (*temp_init)[i][j];
+					local_sum += (*temp_init)[i][j];
+				}
 			}
+
+			_mm_storeu_pd(maxdiff_vect_mem, maxdiff_vect2);
+			r->tmax = max(r->tmax, max(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
+
+			_mm_storeu_pd(maxdiff_vect_mem, temp_init_reg_clone);
+			r->tmin = min(r->tmin, min(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
+
+			_mm_storeu_pd(maxdiff_vect_mem, direct_sum);
+			#pragma omp single
+			gettimeofday(&end, 0);
+			r->time = (end.tv_sec + (end.tv_usec / 1000000.0)) - (start.tv_sec + (start.tv_usec / 1000000.0));
+			r->niter = iter;
+			r->tavg = (local_sum + maxdiff_vect_mem[0] + maxdiff_vect_mem[1]) /(N * M);
+			r->maxdiff = maxdiff;
+			#pragma omp single nowait
+			report_results(p, r);
 		}
 
 	}
