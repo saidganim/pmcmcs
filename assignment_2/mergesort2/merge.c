@@ -11,81 +11,74 @@
 /* Ordering of the vector */
 typedef enum Ordering {ASCENDING, DESCENDING, RANDOM} Order;
 
+#define min(a,b) \
+({\
+	__typeof(a) _a = (a);\
+	__typeof(b) _b = (b);\
+	(_a) < (_b) ? (_a) : (_b); })
+
 int debug = 0;
 
-int* __mrg(int *v, long l){
-    int* tmp = (int*) malloc(l * sizeof(int));
-    int* tmps = tmp;
-    int *left = v,  *right = v + l/2;
-    int *lefts = left, *rights = right;
-    for(int i = 0; i < l; ++i){
-      if( right - rights == l/2)
-        *(tmp++) = *(left++);
-      else if (left - lefts == l/2)
-        *(tmp++) = *(right++);
-      else if(*left < *right)
-        *(tmp++) = *(left++);
-      else
-        *(tmp++) = *(right++);
-    }
-    memcpy(v, tmps, l * sizeof(int));
-    free(tmps);
-    return v;
+static int MAXHOPS = 0;
+
+void __mrg(int *v, long l, long limit, int* tmp){
+  int *left = v, *right = v + l/2;
+  int i = 0;
+  while(i < limit){
+    if(left - v >= l/2)
+      tmp[i++] = *(right++);
+    else if(right - v >= limit)
+      tmp[i++] = *(left++);
+    else if(*left > *right)
+      tmp[i++] = *(right++);
+    else
+      tmp[i++] = *(left++);
+  }
+  // printf("INSERTED %d\n", tmp[i - 1]);
+	memcpy(v, tmp, limit * sizeof(int));
 }
 
-int* __merge(int *v, long l){
-  if(l == 2){
-    if(v[0] > v[1]){
-      v[0] += v[1];
-      v[1] = v[0] - v[1];
-      v[0] = v[0] - v[1];
-    }
+int* __merge(int *v, long l, long limit, int * tmp){
+  if(limit  <= 1)
     return v;
-  } else {
-    int* tmp = (int*) malloc(l * sizeof(int));
-    int* tmps = tmp;
-    int *left, *right;
-    // #pragma omp task
-      left = __merge(v, l / 2);
-    // #pragma omp task
-      right = __merge(v + l/2, l/2);
-
-    // #pragma omp taskwait
-    int *lefts = left, *rights = right;
-    for(int i = 0; i < l; ++i){
-      if( right - rights == l/2)
-        *(tmp++) = *(left++);
-      else if (left - lefts == l/2)
-        *(tmp++) = *(right++);
-      else if(*left < *right)
-        *(tmp++) = *(left++);
-      else
-        *(tmp++) = *(right++);
-    }
-    memcpy(v, tmps, l * sizeof(int));
-    free(tmps);
-    return v;
+  if(l == 0)
+    l = limit;
+  int *left, *right;
+  int i = 0;
+  left = __merge(v, l / 2, l / 2, tmp);
+  right = __merge(v + l/2, l/2, limit - l/2, tmp);
+  while(i < limit){
+    if(left - v >= l/2)
+      tmp[i++] = *(right++);
+    else if(right - v >= limit)
+      tmp[i++] = *(left++);
+    else if(*left > *right)
+      tmp[i++] = *(right++);
+    else
+      tmp[i++] = *(left++);
   }
-
+  memcpy(v, tmp, limit * sizeof(int));
+  return v;
 }
 
 /* Sort vector v of l elements using mergesort */
 void msort(int *v, long l){
   unsigned int thread_num = omp_get_max_threads();
-  // #pragma omp parallel
-  {
-    // #pragma omp single
-    {
-      for(int i = 0; i < thread_num; ++i){
-        __merge(v + i * (l / thread_num), l / thread_num);
-      }
+    #pragma omp parallel for num_threads(thread_num)
+    for(int i = 0; i < thread_num; ++i){
+      int* tmp = (int*) malloc(l * sizeof(int));
+      __merge(v + i * l / thread_num , l / thread_num, l / thread_num, tmp);
+      free(tmp);
     }
 
-  }
-
-  __mrg(v, l);
-  // __merge(v, l);
-
+    for(int block = l / thread_num; block < l; block += block){
+			#pragma omp for schedule(static)
+			for(int blocki = 0; blocki < l; blocki += 2 * block){
+        int *tmp = malloc(sizeof(int) * l);
+				__mrg(v + blocki, 2 * block, min( 2 * block, l - blocki), tmp);
+        free(tmp);
+			}
+		}
 }
 
 void print_v(int *v, long l) {
@@ -103,7 +96,7 @@ int main(int argc, char **argv) {
 
   int c;
   int seed = 42;
-  long length = 1e4 * 1e4;
+  long length = 1e6;
   Order order = DESCENDING;
   int *vector;
   struct timeval start, end;

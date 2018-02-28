@@ -40,18 +40,21 @@ void __merge(int *v, long l, long limit, int* tmp){
 
 /* Sort vector v of l elements using mergesort */
 void msort(int *v, long l){
-	int *tmp = malloc(sizeof(int) * l);
+
   unsigned int thread_num = omp_get_max_threads();
 	#pragma omp parallel
 	{
+		int *tmp = malloc(sizeof(int) * l);
+
 		for(int block = 1; block < l; block += block){
-			#pragma omp for schedule(static)
+			// #pragma omp for schedule(static)
 			for(int blocki = 0; blocki < l; blocki += 2 * block){
 				__merge(v + blocki, 2 * block, min( 2 * block, l - blocki), tmp);
 			}
 		}
+
+		free(tmp);
 	}
-	free(tmp);
 }
 
 void print_v(int *v, long l) {
@@ -69,7 +72,7 @@ int main(int argc, char **argv) {
 
   int c;
   int seed = 42;
-  long length = 1e4 * 1e5;
+  long length = 1e6;
   Order order = DESCENDING;
   int *vector;
   struct timeval start, end;
