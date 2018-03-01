@@ -110,6 +110,7 @@ void do_compute(const struct parameters* p, struct results *r)
 
 
 		while(iter < p->maxiter && maxdiff > p->threshold){
+			int thread_id = omp_get_thread_num();
 			// do computations;
 			#pragma omp barrier
 			maxdiff = 0.0;
@@ -184,7 +185,7 @@ void do_compute(const struct parameters* p, struct results *r)
 			// syncrhonizing init matrix and temporary one
 			// for(int i = 0; i < N; ++i)
 			// 	memcpy( &(*temp_init)[i + 1][1], &(*temp_tmp)[i][0], M * sizeof(double));
-			maxdiff_vect[threa_id] = localmaxdiff;
+			maxdiff_vect[thread_id] = localmaxdiff;
 			#pragma omp barrier
 			#pragma omp single
 			{
