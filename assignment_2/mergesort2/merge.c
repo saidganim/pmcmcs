@@ -72,7 +72,7 @@ void msort(int *v, long l){
     }
 
     for(int block = l / thread_num; block < l; block += block){
-			#pragma omp for schedule(static) if ( l /block >= 4)
+			#pragma omp for schedule(static)
 			for(int blocki = 0; blocki < l; blocki += 2 * block){
         int *tmp = malloc(sizeof(int) * l);
 				__mrg(v + blocki, 2 * block, min( 2 * block, l - blocki), tmp);
