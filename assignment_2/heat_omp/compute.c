@@ -128,7 +128,7 @@ void do_compute(const struct parameters* p, struct results *r)
 			r->niter = iter;
 			r->tavg = local_sum /(N * M);
 			r->maxdiff = maxdiff;
-			#pragma single nowait
+			#pragma omp single nowait
 		  if((iter % p->period) == 0)
 			   report_results(p, r);
 		}
