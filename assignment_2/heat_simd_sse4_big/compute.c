@@ -105,6 +105,7 @@ void do_compute(const struct parameters* p, struct results *r)
 		__m128d temp_init_reg_d3;
 		__m128d temp_init_reg_d4;
 		__m128d temp_init_reg_bottom;
+		__m128d localmaxdiff;
 
 
 		while(iter < p->maxiter && maxdiff > p->threshold){
@@ -119,7 +120,7 @@ void do_compute(const struct parameters* p, struct results *r)
 				(*temp_tmp)[i + 1][M + 1] = (*temp_init)[i + 1][1]; // move first column to (M+1)'s
 			}
 			maxdiff = 0.0;
-			maxdiff_vect[thread_id] = _mm_set1_pd(0.0);
+			localmaxdiff = _mm_set1_pd(0.0);
 			// finally start computations
 			#pragma omp for reduction (max: maxdiff)
 			for(int i = 1; i <= N; ++i){
@@ -161,7 +162,7 @@ void do_compute(const struct parameters* p, struct results *r)
 					// }
 
 					double_temp_reg = _mm_sub_pd(temp_init_reg, temp_init_reg_clone);
-					maxdiff_vect[thread_id] = _mm_max_pd(maxdiff_vect[thread_id], _mm_max_pd(_mm_sub_pd(_mm_set1_pd(0.0), double_temp_reg), double_temp_reg));
+					localmaxdiff = _mm_max_pd(localmaxdiff, _mm_max_pd(_mm_sub_pd(_mm_set1_pd(0.0), double_temp_reg), double_temp_reg));
 				}
 
 				for(int j = (M - M % elems_per_iter) + 1; j <= M ; ++j){
@@ -184,6 +185,8 @@ void do_compute(const struct parameters* p, struct results *r)
 			// syncrhonizing init matrix and temporary one
 			// for(int i = 0; i < N; ++i)
 			// 	memcpy( &(*temp_init)[i + 1][1], &(*temp_tmp)[i][0], M * sizeof(double));
+			maxdiff_vect[thread_id] = localmaxdiff;
+			#pragma omp barrier
 			#pragma omp single
 			{
 				++iter;
@@ -244,7 +247,7 @@ void do_compute(const struct parameters* p, struct results *r)
 	}
 
 
-	gettimeofday(&end, 0);
+
 	r->tmin = r->tmax = (*temp_tmp)[1][1];
 	maxdiff_vect2 = _mm_set1_pd((*temp_tmp)[1][1]);
 	temp_init_reg_clone = _mm_set1_pd((*temp_tmp)[1][1]);
@@ -265,7 +268,7 @@ void do_compute(const struct parameters* p, struct results *r)
 			sum += (*temp_init)[i][j];
 		}
 	}
-
+	gettimeofday(&end, 0);
 	_mm_storeu_pd(maxdiff_vect_mem, maxdiff_vect2);
 	r->tmax = max(r->tmax, max(maxdiff_vect_mem[0], maxdiff_vect_mem[1]));
 

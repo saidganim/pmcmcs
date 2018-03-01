@@ -106,14 +106,14 @@ void do_compute(const struct parameters* p, struct results *r)
 		__m256d temp_init_reg_d3;
 		__m256d temp_init_reg_d4;
 		__m256d temp_init_reg_bottom;
+		__m256d localmaxdiff;
 
 
 		while(iter < p->maxiter && maxdiff > p->threshold){
 			// do computations;
 			#pragma omp barrier
 			maxdiff = 0.0;
-			for(int i = 0 ; i < 2; ++i)
-				maxdiff_vect[i] = _mm256_set1_pd(0.0);
+			localmaxdiff = _mm256_set1_pd(0.0);
 			// update most left and most right columns( cache suffers )
 			#pragma omp for
 			for(int i = 0; i < N; ++i){
@@ -161,7 +161,7 @@ void do_compute(const struct parameters* p, struct results *r)
 					temp_init_reg = _mm256_add_pd(temp_init_reg, diag_sum);
 					_mm256_storeu_pd(&(*temp_tmp)[i][j], temp_init_reg);
 					double_temp_reg = _mm256_sub_pd(temp_init_reg, temp_init_reg_clone);
-						maxdiff_vect[thread_id] = _mm256_max_pd(maxdiff_vect[thread_id], _mm256_max_pd(_mm256_sub_pd(_mm256_set1_pd(0.0), double_temp_reg), double_temp_reg));
+					localmaxdiff = _mm256_max_pd(localmaxdiff, _mm256_max_pd(_mm256_sub_pd(_mm256_set1_pd(0.0), double_temp_reg), double_temp_reg));
 				}
 
 				for(int j = (M - M % elems_per_iter) + 1; j <= M ; ++j){
@@ -184,6 +184,8 @@ void do_compute(const struct parameters* p, struct results *r)
 			// syncrhonizing init matrix and temporary one
 			// for(int i = 0; i < N; ++i)
 			// 	memcpy( &(*temp_init)[i + 1][1], &(*temp_tmp)[i][0], M * sizeof(double));
+			maxdiff_vect[threa_id] = localmaxdiff;
+			#pragma omp barrier
 			#pragma omp single
 			{
 				maxdiff_vect2 =max_from_vect(maxdiff_vect, thread_num)  ;
