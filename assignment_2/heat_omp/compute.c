@@ -112,7 +112,6 @@ void do_compute(const struct parameters* p, struct results *r)
 			//maxdiff = max_from_array(maxdiff_threads, thread_num);
 			++iter;
 		}
-		//#pragma omp single nowait
 		if((iter % p->period) == 0 || !(iter < p->maxiter && maxdiff > p->threshold)){
 			r->tmin = r->tmax = (*temp_tmp)[1][1];
 			#pragma omp for reduction(+: local_sum)
@@ -129,6 +128,7 @@ void do_compute(const struct parameters* p, struct results *r)
 			r->niter = iter;
 			r->tavg = local_sum /(N * M);
 			r->maxdiff = maxdiff;
+			#pragma single nowait
 		  if((iter % p->period) == 0)
 			   report_results(p, r);
 		}
