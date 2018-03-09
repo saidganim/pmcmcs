@@ -45,7 +45,8 @@ void* run_job(void* a){
   printf("PTHREAD %d WORK CHUNK IS (%d, %f)\n", p->ptid,  1 + p->ptid * N/PTHREAD_NUM, p->ptid * ((double)N)/PTHREAD_NUM + ((double)N) /PTHREAD_NUM);
   while(iter++ < p->maxiter && *p->maxdiff > p->threshold){
     // do computations;
-		// update most left and most right columns( cache suffers )
+    maxdiff = 0.;
+    // update most left and most right columns( cache suffers )
 		for(int i = p->ptid * N/PTHREAD_NUM; i < p->ptid * ((double)N)/PTHREAD_NUM + ((double)N) /PTHREAD_NUM; ++i){
 			(*temp_init)[i + 1][0] = (*temp_init)[i + 1][M]; // move last column to 0's
 			(*temp_init)[i + 1][M + 1] = (*temp_init)[i + 1][1]; // move first column to (M+1)'s
@@ -56,8 +57,6 @@ void* run_job(void* a){
       pthread_barrier_destroy(&p->barriers[0]);
       pthread_barrier_init(&p->barriers[0], NULL, PTHREAD_NUM);
     }
-    maxdiff = 0.;
-    *p->maxdiff = maxdiff;
 
 		// finally start computations
 		for(int i = 1 + p->ptid * N/PTHREAD_NUM; i <= p->ptid * ((double)N)/PTHREAD_NUM + ((double)N) /PTHREAD_NUM; ++i){
@@ -82,6 +81,12 @@ void* run_job(void* a){
 		double* tmp_tmp = temp_init;
 		temp_init = temp_tmp;
 		temp_tmp = tmp_tmp;
+    *p->maxdiff = maxdiff;
+    if(pthread_barrier_wait(&p->barriers[1]) == PTHREAD_BARRIER_SERIAL_THREAD){
+      pthread_barrier_destroy(&p->barriers[1]);
+      pthread_barrier_init(&p->barriers[1], NULL, PTHREAD_NUM);
+    }
+
     {
       pthread_spin_lock(&maxdiff_lock);
       if(maxdiff > *p->maxdiff)
@@ -90,10 +95,6 @@ void* run_job(void* a){
     }
     // if(
     // }
-    if(pthread_barrier_wait(&p->barriers[1]) == PTHREAD_BARRIER_SERIAL_THREAD){
-      pthread_barrier_destroy(&p->barriers[1]);
-      pthread_barrier_init(&p->barriers[1], NULL, PTHREAD_NUM);
-    }
 		// if((iter % p->period) == 0){
 		// 	double local_sum = 0;
 		// 	gettimeofday(&end, 0);
@@ -156,7 +157,7 @@ void do_compute(const struct parameters* p, struct results *r)
   pthread_barrier_init(barriers + 1, NULL, PTHREAD_NUM);
   pthread_spin_init(&maxdiff_lock, 0);
 	gettimeofday(&start, 0);
-  for( int i = 0; i < PTHREAD_NUM; ++i){
+  for( int i = 1; i < PTHREAD_NUM; ++i){
     params[i].barriers = barriers;
     params[i].temp_tmp = temp_tmp;
     params[i].temp_init = temp_init;
@@ -172,11 +173,25 @@ void do_compute(const struct parameters* p, struct results *r)
     pthread_create(&threads[i], NULL, run_job, &params[i]);
   }
 
+  params[0].barriers = barriers;
+  params[0].temp_tmp = temp_tmp;
+  params[0].temp_init = temp_init;
+  params[0].conductivity = p->conductivity;
+  params[0].maxdiff = &maxdiff;
+  params[0].threshold =p->threshold;
+  params[0].maxiter = p->maxiter;
+  params[0].period = p->period;
+  params[0].iter = &iter;
+  params[0].ptid = 0;
+  params[0].N = p->N;
+  params[0].M = p->M;
+  run_job(&params[0]);
 
-  for( int i = 0; i < PTHREAD_NUM; ++i){
-    void* res = NULL;
-    pthread_join(threads[i], &res);
-  }
+  //
+  // for( int i = 0; i < PTHREAD_NUM; ++i){
+  //   void* res = NULL;
+  //   pthread_join(threads[i], &res);
+  // }
 
 	gettimeofday(&end, 0);
 	r->tmin = r->tmax = (*temp_tmp)[1][1];
