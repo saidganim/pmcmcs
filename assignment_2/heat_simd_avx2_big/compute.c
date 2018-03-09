@@ -46,7 +46,7 @@ void do_compute(const struct parameters* p, struct results *r)
 	double dig_nc = 1 /(sqrt(2) + 1) / 4;
 	int elems_per_iter = (256 / sizeof(double) / 8);
 	double maxdiff_vect_mem[elems_per_iter / 2];
-	int thread_num = omp_get_max_threads() / 2;
+	int thread_num = 2; //omp_get_max_threads() / 2;
 	__m256d weighted_neighb_reg;
 	__m256d temp_init_reg;
 	__m256d temp_init_reg_clone;
