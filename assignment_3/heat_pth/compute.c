@@ -38,14 +38,15 @@ void* run_job(void* a){
   double (*temp_tmp)[p->N + 2][p->M + 2] = (double (*)[p->N + 2][p->M + 2])p->temp_tmp;
   double (*temp_init)[p->N + 2][p->M + 2] = (double (*)[p->N + 2][p->M + 2])p->temp_init;
   double (*conductivity)[p->N][p->M] = (double (*)[p->N][p->M])p->conductivity;
-  double maxdiff = *p->maxdiff;
+  double maxdiff = p->threshold + 1;
 	unsigned int iter = 0;
 	double dir_nc = sqrt(2)/(sqrt(2) + 1) / 4;
 	double dig_nc = 1 /(sqrt(2) + 1) / 4;
   printf("PTHREAD %d WORK CHUNK IS (%d, %f)\n", p->ptid,  1 + p->ptid * N/PTHREAD_NUM, p->ptid * ((double)N)/PTHREAD_NUM + ((double)N) /PTHREAD_NUM);
-  while(iter++ < p->maxiter && *p->maxdiff > p->threshold){
+  while(iter++ < p->maxiter && (maxdiff > p->threshold || maxdiff < 0)){
     // do computations;
     maxdiff = 0.;
+    *p->maxdiff = -1.;
     // update most left and most right columns( cache suffers )
 		for(int i = p->ptid * N/PTHREAD_NUM; i < p->ptid * ((double)N)/PTHREAD_NUM + ((double)N) /PTHREAD_NUM; ++i){
 			(*temp_init)[i + 1][0] = (*temp_init)[i + 1][M]; // move last column to 0's
@@ -81,11 +82,6 @@ void* run_job(void* a){
 		double* tmp_tmp = temp_init;
 		temp_init = temp_tmp;
 		temp_tmp = tmp_tmp;
-    *p->maxdiff = maxdiff;
-    if(pthread_barrier_wait(&p->barriers[1]) == PTHREAD_BARRIER_SERIAL_THREAD){
-      pthread_barrier_destroy(&p->barriers[1]);
-      pthread_barrier_init(&p->barriers[1], NULL, PTHREAD_NUM);
-    }
 
     {
       pthread_spin_lock(&maxdiff_lock);
@@ -93,6 +89,12 @@ void* run_job(void* a){
         *p->maxdiff = maxdiff;
       pthread_spin_unlock(&maxdiff_lock);
     }
+
+    if(pthread_barrier_wait(&p->barriers[1]) == PTHREAD_BARRIER_SERIAL_THREAD){
+      pthread_barrier_destroy(&p->barriers[1]);
+      pthread_barrier_init(&p->barriers[1], NULL, PTHREAD_NUM);
+    }
+    maxdiff = *p->maxdiff;
     // if(
     // }
 		// if((iter % p->period) == 0){
