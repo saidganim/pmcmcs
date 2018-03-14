@@ -30,11 +30,27 @@ void __pseudo_pipe_barrier(){
   pthread_mutex_unlock(&mutex);
 }
 
+void output_pipe(void* a){
+  int** param = (int**)a;
+  printf("OUTPUT PIPE: ");
+  while(TRUE){
+    __pipe_barrier();
+    if(*param == NULL){
+      __pipe_barrier();
+      break;
+    }
+    printf(" %d ", **param);
+    __pipe_barrier();
+  }
+  printf("\n");
+}
+
 void* pipe(void* a){
   int** param = (int**)a;
   pthread_t* successor = NULL;
   int own_value;
   int* value = malloc(sizeof(int));
+  int* value_location = value;
   __pipe_barrier();
   own_value = **param;
   __pipe_barrier();
@@ -65,6 +81,46 @@ void* pipe(void* a){
       pthread_create(successor, NULL, pipe, &value);
     }
   }
+
+
+  __pipe_barrier();
+    int* iter_addr = *param;
+    int stable_value;
+    if(iter_addr)
+    stable_value = **param;
+  __pipe_barrier(); //  Need this two barrier to synchronize and pass NULL as end of phase
+  value = value_location;
+  *value = own_value;
+
+  if(successor == NULL){
+      successor = (pthread_t*)malloc(sizeof(pthread_t));
+      pthread_spin_lock(&spin);
+      ++thread_num;
+      pthread_spin_unlock(&spin);
+      pthread_create(successor, NULL, output_pipe, &value);
+  }
+
+
+  // printf("RICKEY F %d < %d\n", cond_counter, thread_num);
+
+  while(TRUE){
+    __pipe_barrier();
+    if(iter_addr == NULL){
+      // printf("SOME THREAD IS FINISHED\n");
+      __pipe_barrier();
+      value = NULL;
+      break;
+    }
+    iter_addr = *param;
+    int stable_value2;
+    if(iter_addr)
+      stable_value2 = **param;
+    // printf("SOME THREAD SUCCESSIVELY PASSED VAL %d\n", stable_value);
+    __pipe_barrier();
+    *value = stable_value;
+    stable_value = stable_value2;
+  }
+
   pthread_spin_lock(&spin);
       --thread_num;
   pthread_spin_unlock(&spin);
@@ -73,7 +129,7 @@ void* pipe(void* a){
   if(successor){
     pthread_join(*successor, NULL);
   }
-  printf("PIPE IS FINISHED WITH VALUE %d\n", own_value);
+  // printf("PIPE IS FINISHED WITH VALUE %d\n", own_value);
 
   return NULL;
 }
@@ -88,8 +144,9 @@ int main(int argc, char** argv){
   pthread_spin_init(&spin, 0);
   pthread_create(&successor, NULL, pipe, &value);
   *value = rand() % 100;
+  printf("%d\n", *value);
   for(int i = 0; i < arg; ++i){
-    printf("ITERATION %d\n", i);
+    // printf("ITERATION %d\n", i);
     __pipe_barrier();
     __pipe_barrier();
     if(i == (arg - 1)){
@@ -98,8 +155,10 @@ int main(int argc, char** argv){
         --thread_num;
       pthread_spin_unlock(&spin);
       __pseudo_pipe_barrier();
-    } else
+    } else {
       *value = rand() % 100;
+      printf("%d\n", *value);
+    }
   }
   pthread_join(successor, NULL);
 
