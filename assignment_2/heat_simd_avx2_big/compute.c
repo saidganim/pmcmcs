@@ -202,14 +202,13 @@ void do_compute(const struct parameters* p, struct results *r)
 				temp_init = temp_tmp;
 				temp_tmp = tmp_tmp;
 			}
-
+			#pragma omp single
 				if(iter % p->period == 0){
 					double local_sum = 0;
 					r->tmin = r->tmax = (*temp_tmp)[1][1];
 					maxdiff_vect2 = _mm256_set1_pd((*temp_tmp)[1][1]);
 					temp_init_reg_clone = _mm256_set1_pd((*temp_tmp)[1][1]);
 					direct_sum = _mm256_set1_pd(0);
-					#pragma omp for
 					for(int i = 1; i <= N; ++i){
 						for(int j = 1; j <= M - (M % elems_per_iter) ; j += elems_per_iter){
 							temp_init_reg =_mm256_loadu_pd(&(*temp_init)[i][j]);
@@ -243,7 +242,6 @@ void do_compute(const struct parameters* p, struct results *r)
 					r->niter = iter;
 					r->tavg = (local_sum + maxdiff_vect_mem[0] + maxdiff_vect_mem[1]) /(N * M);
 					r->maxdiff = maxdiff;
-					#pragma omp single nowait
 					report_results(p, r);
 				}
 

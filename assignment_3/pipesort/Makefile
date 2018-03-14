@@ -6,10 +6,10 @@ OBJ=$(patsubst %.c,%.o,$(SRC))
 CC=gcc
 INCLUDES=-I../../include
 ifndef DEBUG
-CFLAGS=-O2 -std=c99
+CFLAGS=-O2 -lpthread -std=c99
 LIB=
 else
-CFLAGS=-O0 -g3 -std=c99
+CFLAGS=-O0 -lpthread -g3 -std=c99
 LIB=
 endif
 
@@ -19,7 +19,7 @@ $(PRJ): $(OBJ)
 	$(CC) $(CFLAGS) $(INCLUDES) $(OBJ) -o $@
 
 %.o: %.c
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@ $(LIB)	
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@ $(LIB)
 
 clean:
 	-rm -f $(OBJ) $(PRJ)

@@ -113,6 +113,7 @@ void do_compute(const struct parameters* p, struct results *r)
 			++iter;
 		}
 		if((iter % p->period) == 0 || !(iter < p->maxiter && maxdiff > p->threshold)){
+			local_sum = 0;
 			r->tmin = r->tmax = (*temp_tmp)[1][1];
 			#pragma omp for reduction(+: local_sum)
 			for(int i = 1; i <= N; ++i){
