@@ -3,11 +3,15 @@
 #include <stdlib.h>
 #include <pthread.h>
 
+/* Everything we need for making barrier */
 static int thread_num = 2;
 pthread_spinlock_t spin;
 static pthread_mutex_t mutex;
 static pthread_cond_t cond;
 static cond_counter = 0;
+/* ==================================== */
+
+
 
 void __pipe_barrier(){
   pthread_mutex_lock(&mutex);
@@ -55,11 +59,11 @@ void* pipe(void* a){
   own_value = **param;
   __pipe_barrier();
   while(TRUE){
-    // Everything inside two barriers work with consistency memory. All writes
-    // and variable changes happen outside this section
     __pipe_barrier();
+      // Everything inside two barriers works with consistency memory. All writes
+      // and variable changes happen outside this section
       if(*param == NULL){
-        __pipe_barrier();
+        __pipe_barrier(); // Leaving loop requires leaving protected section
         value = NULL;
         break;
       }
@@ -125,12 +129,11 @@ void* pipe(void* a){
       --thread_num;
   pthread_spin_unlock(&spin);
   __pseudo_pipe_barrier();
-
   if(successor){
     pthread_join(*successor, NULL);
   }
-  // printf("PIPE IS FINISHED WITH VALUE %d\n", own_value);
-
+  free(value_location);
+  free(successor);
   return NULL;
 }
 
@@ -161,5 +164,5 @@ int main(int argc, char** argv){
     }
   }
   pthread_join(successor, NULL);
-
+  free(value);
 }

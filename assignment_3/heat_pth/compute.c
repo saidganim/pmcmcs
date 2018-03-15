@@ -20,6 +20,7 @@ pthread_spinlock_t maxdiff_lock;
 
 typedef struct params{
   pthread_barrier_t *barriers;
+  struct timeval* start;
   double (*conductivity);
   double (*temp_tmp);
   double (*temp_init);
@@ -31,10 +32,13 @@ typedef struct params{
   unsigned int ptid;
   unsigned int N;
   unsigned int M;
+  struct results* r;
 } params_t;
 
 void* run_job(void* a){
+  struct timeval end;
   params_t *p = (params_t*)a;
+  struct results* r = p->r;
   double (*temp_tmp)[p->N + 2][p->M + 2] = (double (*)[p->N + 2][p->M + 2])p->temp_tmp;
   double (*temp_init)[p->N + 2][p->M + 2] = (double (*)[p->N + 2][p->M + 2])p->temp_init;
   double (*conductivity)[p->N][p->M] = (double (*)[p->N][p->M])p->conductivity;
@@ -95,27 +99,26 @@ void* run_job(void* a){
       pthread_barrier_init(&p->barriers[1], NULL, PTHREAD_NUM);
     }
     maxdiff = *p->maxdiff;
-    // if(
-    // }
-		// if((iter % p->period) == 0){
-		// 	double local_sum = 0;
-		// 	gettimeofday(&end, 0);
-		// 	r->tmin = r->tmax = (*temp_tmp)[1][1];
-		// 	for(int i = 1; i <= N; ++i){
-		// 		for(int j = 1; j <= M ; ++j){
-		// 			if((*temp_init)[i][j] > r->tmax)
-		// 				r->tmax = (*temp_init)[i][j];
-		// 			if((*temp_init)[i][j] < r->tmin)
-		// 				r->tmin = (*temp_init)[i][j];
-		// 			local_sum += (*temp_init)[i][j];
-		// 		}
-		// 	}
-		// 	r->time = (end.tv_sec + (end.tv_usec / 1000000.0)) - (start.tv_sec + (start.tv_usec / 1000000.0));
-		// 	r->niter = iter;
-		// 	r->tavg = local_sum /(N * M);
-		// 	r->maxdiff = maxdiff;
-		// 	report_results(p, r);
-		// }
+
+		if((iter % p->period) == 0 && p->ptid == 0){ // Only for one thread
+			double local_sum = 0;
+			gettimeofday(&end, 0);
+			r->tmin = r->tmax = (*temp_tmp)[1][1];
+			for(int i = 1; i <= N; ++i){
+				for(int j = 1; j <= M ; ++j){
+					if((*temp_init)[i][j] > r->tmax)
+						r->tmax = (*temp_init)[i][j];
+					if((*temp_init)[i][j] < r->tmin)
+						r->tmin = (*temp_init)[i][j];
+					local_sum += (*temp_init)[i][j];
+				}
+			}
+			r->time = (end.tv_sec + (end.tv_usec / 1000000.0)) - (p->start->tv_sec + (p->start->tv_usec / 1000000.0));
+			r->niter = iter;
+			r->tavg = local_sum /(N * M);
+			r->maxdiff = maxdiff;
+			report_results(p, r);
+		}
 	}
   *p->iter = iter;
   return NULL;
@@ -162,6 +165,7 @@ void do_compute(const struct parameters* p, struct results *r)
   for( int i = 1; i < PTHREAD_NUM; ++i){
     params[i].barriers = barriers;
     params[i].temp_tmp = temp_tmp;
+    params[i].start = &start;
     params[i].temp_init = temp_init;
     params[i].conductivity = p->conductivity;
     params[i].maxdiff = &maxdiff;
@@ -170,13 +174,16 @@ void do_compute(const struct parameters* p, struct results *r)
     params[i].period = p->period;
     params[i].iter = &iter;
     params[i].ptid = i;
+    params[i].ptid = i;
     params[i].N = p->N;
     params[i].M = p->M;
+    params[i].r = r;
     pthread_create(&threads[i], NULL, run_job, &params[i]);
   }
 
   params[0].barriers = barriers;
   params[0].temp_tmp = temp_tmp;
+  params[0].start = &start;
   params[0].temp_init = temp_init;
   params[0].conductivity = p->conductivity;
   params[0].maxdiff = &maxdiff;
@@ -187,6 +194,7 @@ void do_compute(const struct parameters* p, struct results *r)
   params[0].ptid = 0;
   params[0].N = p->N;
   params[0].M = p->M;
+  params[0].r = r;
   run_job(&params[0]);
 
   //
