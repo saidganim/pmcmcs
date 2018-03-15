@@ -12,11 +12,13 @@
 
 static unsigned int N,M;
 
-#define PTHREAD_NUM 2
+#define PTHREAD_NUM 4
 
 #define _index_macro(a, b, c) a[M * (b) + (c)]
 
 pthread_spinlock_t maxdiff_lock;
+
+static double sync_maxdiff;
 
 typedef struct params{
   pthread_barrier_t *barriers;
@@ -46,7 +48,6 @@ void* run_job(void* a){
 	unsigned int iter = 0;
 	double dir_nc = sqrt(2)/(sqrt(2) + 1) / 4;
 	double dig_nc = 1 /(sqrt(2) + 1) / 4;
-  printf("PTHREAD %d WORK CHUNK IS (%d, %f)\n", p->ptid,  1 + p->ptid * N/PTHREAD_NUM, p->ptid * ((double)N)/PTHREAD_NUM + ((double)N) /PTHREAD_NUM);
   while(iter++ < p->maxiter && (maxdiff > p->threshold || maxdiff < 0)){
     // do computations;
     maxdiff = 0.;
@@ -89,8 +90,10 @@ void* run_job(void* a){
 
     {
       pthread_spin_lock(&maxdiff_lock);
-      if(maxdiff > *p->maxdiff)
+      if(maxdiff > *p->maxdiff){
         *p->maxdiff = maxdiff;
+        sync_maxdiff = maxdiff;
+      }
       pthread_spin_unlock(&maxdiff_lock);
     }
 
@@ -100,7 +103,7 @@ void* run_job(void* a){
     }
     maxdiff = *p->maxdiff;
 
-		if((iter % p->period) == 0 && p->ptid == 0){ // Only for one thread
+		if(p->ptid == 0 && (iter % p->period) == 0){ // Only for one thread
 			double local_sum = 0;
 			gettimeofday(&end, 0);
 			r->tmin = r->tmax = (*temp_tmp)[1][1];
@@ -116,7 +119,7 @@ void* run_job(void* a){
 			r->time = (end.tv_sec + (end.tv_usec / 1000000.0)) - (p->start->tv_sec + (p->start->tv_usec / 1000000.0));
 			r->niter = iter;
 			r->tavg = local_sum /(N * M);
-			r->maxdiff = maxdiff;
+			r->maxdiff = sync_maxdiff;
 			report_results(p, r);
 		}
 	}
@@ -161,7 +164,7 @@ void do_compute(const struct parameters* p, struct results *r)
   pthread_barrier_init(barriers, NULL, PTHREAD_NUM);
   pthread_barrier_init(barriers + 1, NULL, PTHREAD_NUM);
   pthread_spin_init(&maxdiff_lock, 0);
-	gettimeofday(&start, 0);
+  gettimeofday(&start, 0);
   for( int i = 1; i < PTHREAD_NUM; ++i){
     params[i].barriers = barriers;
     params[i].temp_tmp = temp_tmp;
