@@ -67,17 +67,23 @@ __global__ void iteration(double* temp_init, double* temp_tmp, double* conductiv
         diff = fabs(_index_macro_pat(temp_tmp, i, j) - _index_macro_pat(temp_init, i, j));
         atomicMaxf(maxdiff, diff);
 //==========================================================================================
-          ++i;
-          ++j;
-         weighted_neighb = dir_nc *
-                                 ( // Direct neighbors
+        for(int i = 0; i < N; ++i) {
+                _index_macro_pat(temp_init, i + 1, 0) = _index_macro_pat(temp_init, i + 1, M);   // move last column to 0's
+                _index_macro_pat(temp_init, i + 1,M + 1) = _index_macro_pat(temp_init, i + 1, 1);   // move first column to (M+1)'s
+                _index_macro_pat(temp_tmp, i + 1,0) = _index_macro_pat(temp_init, i + 1, M);   // move last column to 0's
+                _index_macro_pat(temp_tmp, i + 1, M + 1) = _index_macro_pat(temp_init, i + 1, 1);   // move first column to (M+1)'s
+        }
+
+        ++j;
+        weighted_neighb = dir_nc *
+                          (        // Direct neighbors
                 _index_macro_pat(temp_init, i - 1, j) + _index_macro_pat(temp_init, i, j - 1) +
                 _index_macro_pat(temp_init, i + 1, j) + _index_macro_pat(temp_init, i, j + 1)
-                                 ) + dig_nc *
-                                 ( // Diagonal neighbors
+                          ) + dig_nc *
+                          (        // Diagonal neighbors
                 _index_macro_pat(temp_init, i - 1, j - 1) +_index_macro_pat(temp_init, i + 1, j - 1) +
                 _index_macro_pat(temp_init, i - 1, j + 1) + _index_macro_pat(temp_init, i + 1, j + 1)
-                                 );
+                          );
         weighted_neighb *= (1 - _index_macro(conductivity, i - 1, j - 1));
         _index_macro_pat(temp_tmp, i, j) = _index_macro_pat(temp_init, i, j) * _index_macro(conductivity, i - 1, j - 1);
         _index_macro_pat(temp_tmp, i, j) += weighted_neighb;
@@ -85,17 +91,24 @@ __global__ void iteration(double* temp_init, double* temp_tmp, double* conductiv
         diff = fabs(_index_macro_pat(temp_tmp, i, j) - _index_macro_pat(temp_init, i, j));
         atomicMaxf(maxdiff, diff);
 //===========================================================================================
-        ++i;
+        for(int i = 0; i < N; ++i) {
+                _index_macro_pat(temp_init, i + 1, 0) = _index_macro_pat(temp_init, i + 1, M); // move last column to 0's
+                _index_macro_pat(temp_init, i + 1,M + 1) = _index_macro_pat(temp_init, i + 1, 1); // move first column to (M+1)'s
+                _index_macro_pat(temp_tmp, i + 1,0) = _index_macro_pat(temp_init, i + 1, M); // move last column to 0's
+                _index_macro_pat(temp_tmp, i + 1, M + 1) = _index_macro_pat(temp_init, i + 1, 1); // move first column to (M+1)'s
+        }
+
         ++j;
+
         weighted_neighb = dir_nc *
-                                 ( // Direct neighbors
+                          (        // Direct neighbors
                 _index_macro_pat(temp_init, i - 1, j) + _index_macro_pat(temp_init, i, j - 1) +
                 _index_macro_pat(temp_init, i + 1, j) + _index_macro_pat(temp_init, i, j + 1)
-                                 ) + dig_nc *
-                                 ( // Diagonal neighbors
+                          ) + dig_nc *
+                          (        // Diagonal neighbors
                 _index_macro_pat(temp_init, i - 1, j - 1) +_index_macro_pat(temp_init, i + 1, j - 1) +
                 _index_macro_pat(temp_init, i - 1, j + 1) + _index_macro_pat(temp_init, i + 1, j + 1)
-                                 );
+                          );
         weighted_neighb *= (1 - _index_macro(conductivity, i - 1, j - 1));
         _index_macro_pat(temp_tmp, i, j) = _index_macro_pat(temp_init, i, j) * _index_macro(conductivity, i - 1, j - 1);
         _index_macro_pat(temp_tmp, i, j) += weighted_neighb;
@@ -104,17 +117,23 @@ __global__ void iteration(double* temp_init, double* temp_tmp, double* conductiv
         atomicMaxf(maxdiff, diff);
 
 //==============================================================================================
-        ++i;
+        for(int i = 0; i < N; ++i) {
+                _index_macro_pat(temp_init, i + 1, 0) = _index_macro_pat(temp_init, i + 1, M); // move last column to 0's
+                _index_macro_pat(temp_init, i + 1,M + 1) = _index_macro_pat(temp_init, i + 1, 1); // move first column to (M+1)'s
+                _index_macro_pat(temp_tmp, i + 1,0) = _index_macro_pat(temp_init, i + 1, M); // move last column to 0's
+                _index_macro_pat(temp_tmp, i + 1, M + 1) = _index_macro_pat(temp_init, i + 1, 1); // move first column to (M+1)'s
+        }
+
         ++j;
         weighted_neighb = dir_nc *
-                                 ( // Direct neighbors
+                          (        // Direct neighbors
                 _index_macro_pat(temp_init, i - 1, j) + _index_macro_pat(temp_init, i, j - 1) +
                 _index_macro_pat(temp_init, i + 1, j) + _index_macro_pat(temp_init, i, j + 1)
-                                 ) + dig_nc *
-                                 ( // Diagonal neighbors
+                          ) + dig_nc *
+                          (        // Diagonal neighbors
                 _index_macro_pat(temp_init, i - 1, j - 1) +_index_macro_pat(temp_init, i + 1, j - 1) +
                 _index_macro_pat(temp_init, i - 1, j + 1) + _index_macro_pat(temp_init, i + 1, j + 1)
-                                 );
+                          );
         weighted_neighb *= (1 - _index_macro(conductivity, i - 1, j - 1));
         _index_macro_pat(temp_tmp, i, j) = _index_macro_pat(temp_init, i, j) * _index_macro(conductivity, i - 1, j - 1);
         _index_macro_pat(temp_tmp, i, j) += weighted_neighb;
