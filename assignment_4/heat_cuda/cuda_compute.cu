@@ -130,7 +130,7 @@ void cuda_do_compute(const struct parameters* p, struct results *r) {
                         r->niter = iter;
                         r->tavg = local_sum /(N * M);
                         r->maxdiff = maxdiff;
-                        report_results(p, r);
+                        //report_results(p, r);
                 }
         }
         gettimeofday(&after, NULL);
