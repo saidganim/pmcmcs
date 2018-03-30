@@ -113,19 +113,26 @@ void cuda_do_compute(const struct parameters* p, struct results *r) {
                 iteration<<<(N * M / threadBlockSize + 1), threadBlockSize>>>(deviceA, deviceB, deviceConductivity, N, M, deviceMaxdiff);
                 cudaMemcpy(&maxdiff, deviceMaxdiff, sizeof(uint64_t), cudaMemcpyDeviceToHost);
                 if((iter % p->period) == 0){
-            			local_sum = 0;
-            			gettimeofday(&end, 0);
-            			r->tmin = r->tmax = (*temp_tmp)[1][1];
-            			for(int i = 1; i <= N; ++i){
-            				for(int j = 1; j <= M ; ++j){
-            					if((*temp_init)[i][j] > r->tmax)
-            						r->tmax = (*temp_init)[i][j];
-            					if((*temp_init)[i][j] < r->tmin)
-            						r->tmin = (*temp_init)[i][j];
-            					local_sum += (*temp_init)[i][j];
-            				}
-            			}
-        }
+                			local_sum = 0;
+                			gettimeofday(&after, 0);
+                			r->tmin = r->tmax = (*temp_tmp)[1][1];
+                			for(int i = 1; i <= N; ++i){
+                				for(int j = 1; j <= M ; ++j){
+                					if((*temp_init)[i][j] > r->tmax)
+                						r->tmax = (*temp_init)[i][j];
+                					if((*temp_init)[i][j] < r->tmin)
+                						r->tmin = (*temp_init)[i][j];
+                					local_sum += (*temp_init)[i][j];
+                				}
+                			}
+                      r->time = (double)(after.tv_sec - before.tv_sec) +
+                                (double)(after.tv_usec - before.tv_usec) / 1e6;
+                      r->niter = iter;
+                			r->tavg = local_sum /(N * M);
+                			r->maxdiff = maxdiff;
+                			report_results(p, r);
+                }
+              }
         gettimeofday(&after, NULL);
 
 // check whether the kernel invocation was successful
