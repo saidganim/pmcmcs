@@ -25,7 +25,7 @@ $(PRJ): $(OBJ) $(OBJ_CUDA)
 	$(NVCC) $(CFLAGS) $(INCLUDES) $(OBJ) $(OBJ_CUDA) -o $@
 
 %.o: %.c
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@ $(LIB)	
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@ $(LIB)
 
 %.o: %.cu
 	$(NVCC) $(NVCCFLAGS) $(INCLUDES) -c $< -o $@
