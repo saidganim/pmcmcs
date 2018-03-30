@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+#include <sys/time.h>
 #include <cuda.h>
 #include <input.h>
 #include <output.h>
