@@ -112,7 +112,19 @@ void cuda_do_compute(const struct parameters* p, struct results *r) {
                 dim3 gridSize(N/threadBlockSize + 1, M / threadBlockSize + 1);
                 iteration<<<(N * M / threadBlockSize + 1), threadBlockSize>>>(deviceA, deviceB, deviceConductivity, N, M, deviceMaxdiff);
                 cudaMemcpy(&maxdiff, deviceMaxdiff, sizeof(uint64_t), cudaMemcpyDeviceToHost);
-                printf("Iteration %d, maxdiff = %f\n", iter - 1, maxdiff);
+                if((iter % p->period) == 0){
+            			local_sum = 0;
+            			gettimeofday(&end, 0);
+            			r->tmin = r->tmax = (*temp_tmp)[1][1];
+            			for(int i = 1; i <= N; ++i){
+            				for(int j = 1; j <= M ; ++j){
+            					if((*temp_init)[i][j] > r->tmax)
+            						r->tmax = (*temp_init)[i][j];
+            					if((*temp_init)[i][j] < r->tmin)
+            						r->tmin = (*temp_init)[i][j];
+            					local_sum += (*temp_init)[i][j];
+            				}
+            			}
         }
         gettimeofday(&after, NULL);
 
@@ -122,6 +134,7 @@ void cuda_do_compute(const struct parameters* p, struct results *r) {
 // copy result back
         checkCudaCall(cudaMemcpy(temp_init, deviceB, (N + 2) * (M + 2) * sizeof(double), cudaMemcpyDeviceToHost));
         r->tmin = r->tmax = (*temp_init)[1][1];
+        local_sum = 0;
         for(int i = 1; i <= N; ++i) {
                 for(int j = 1; j <= M; ++j) {
                         if((*temp_init)[i][j] > r->tmax)
