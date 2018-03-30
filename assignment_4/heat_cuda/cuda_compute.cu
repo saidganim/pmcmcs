@@ -115,7 +115,7 @@ void cuda_do_compute(const struct parameters* p, struct results *r) {
                 if((iter % p->period) == 0) {
                         local_sum = 0;
                         gettimeofday(&after, 0);
-                        r->tmin = r->tmax = (*temp_tmp)[1][1];
+                        r->tmin = r->tmax = (*temp_init)[1][1];
                         for(int i = 1; i <= N; ++i) {
                                 for(int j = 1; j <= M; ++j) {
                                         if((*temp_init)[i][j] > r->tmax)
