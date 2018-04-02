@@ -122,7 +122,7 @@ void cuda_do_compute(const struct parameters* p, struct results *r) {
                 {double* tmp = deviceA; deviceA = deviceB; deviceB = tmp;}
                 dim3 gridSize(N/threadBlockSize + 1, M / threadBlockSize + 1);
                 iteration<<<(N * M / threadBlockSize + 1), threadBlockSize>>>(deviceA, deviceB, deviceConductivity, N, M, deviceMaxdiff);
-                prepare_border<<<(N * M / threadBlockSize + 1), threadBlockSize>>>(deviceA, deviceB, N, M);
+                prepare_borders<<<(N * M / threadBlockSize + 1), threadBlockSize>>>(deviceA, deviceB, N, M);
                 cudaMemcpy(&maxdiff, deviceMaxdiff, sizeof(uint64_t), cudaMemcpyDeviceToHost);
                 if((iter % p->period) == 0) {
                         local_sum = 0;
