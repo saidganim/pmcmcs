@@ -29,6 +29,20 @@ __device__ static double atomicMaxf(double* address, double val)
         return __longlong_as_double(old);
 }
 
+__global__ void prepare_borders(double* temp_init, double* temp_tmp, int N, int M){
+  unsigned i = blockDim.x * blockIdx.x + threadIdx.x;
+  unsigned j = i % M + 1;
+  i = i / M + 1;
+
+  if(i > N)
+    return;
+
+  _index_macro_pat(temp_init, i + 1, 0) = _index_macro_pat(temp_init, i + 1, M); // move last column to 0's
+  _index_macro_pat(temp_init, i + 1,M + 1) = _index_macro_pat(temp_init, i + 1, 1); // move first column to (M+1)'s
+  _index_macro_pat(temp_tmp, i + 1,0) = _index_macro_pat(temp_init, i + 1, M); // move last column to 0's
+  _index_macro_pat(temp_tmp, i + 1, M + 1) = _index_macro_pat(temp_init, i + 1, 1); // move first column to (Mi+1)'s
+}
+
 
 __global__ void iteration(double* temp_init, double* temp_tmp, double* conductivity, int N, int M, double* maxdiff) {
         unsigned i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -42,10 +56,7 @@ __global__ void iteration(double* temp_init, double* temp_tmp, double* conductiv
 
         *maxdiff = 0;
         for(int i = 0; i < N; ++i) {
-                _index_macro_pat(temp_init, i + 1, 0) = _index_macro_pat(temp_init, i + 1, M); // move last column to 0's
-                _index_macro_pat(temp_init, i + 1,M + 1) = _index_macro_pat(temp_init, i + 1, 1); // move first column to (M+1)'s
-                _index_macro_pat(temp_tmp, i + 1,0) = _index_macro_pat(temp_init, i + 1, M); // move last column to 0's
-                _index_macro_pat(temp_tmp, i + 1, M + 1) = _index_macro_pat(temp_init, i + 1, 1); // move first column to (M+1)'s
+
         }
         double weighted_neighb = dir_nc *
                                  ( // Direct neighbors
