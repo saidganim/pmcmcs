@@ -31,10 +31,9 @@ __device__ static double atomicMaxf(double* address, double val)
 
 __global__ void prepare_borders(double* temp_init, double* temp_tmp, int N, int M){
   unsigned i = blockDim.x * blockIdx.x + threadIdx.x;
-  unsigned j = i % M + 1;
-  i = i / M + 1;
+  i = i / M;
 
-  if(i > N)
+  if(i >= N)
     return;
 
   _index_macro_pat(temp_init, i + 1, 0) = _index_macro_pat(temp_init, i + 1, M); // move last column to 0's
