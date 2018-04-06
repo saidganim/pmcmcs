@@ -68,7 +68,7 @@ void convolutionCUDA(float *output, float *input, float *filter) {
   cudaStream_t streams[2];
   cudaStream_t *stream1 = streams, *stream2 = streams + 1;
 	cudaError_t err;
-  unsigned int image_height_block = ceilf(image_width * image_height / (1024. * 1024. /* optimal size */));
+  unsigned int image_height_block = image_height / ceilf(image_width * image_height / (1024. * 1024. /* optimal size */));
   unsigned int input_height_block = (image_height_block + border_height);
 	timer kernelTime = timer("kernelTime");
 	timer memoryTime = timer("memoryTime");
@@ -99,7 +99,7 @@ void convolutionCUDA(float *output, float *input, float *filter) {
   {float* tmp = d_input; d_input = d_input2; d_input2 = tmp;}
 
 
-  for(int i = 0; i < image_height; ){
+  for(int i = 0; i < image_height;){
     {float* tmp = d_input; d_input = d_input2; d_input2 = tmp;}
     //setup the grid and thread blocks
   	//thread block size
