@@ -27,7 +27,7 @@ void convolutionSeq(float *output, float *input, float *filter) {
 
 	sequentialTime.start();
 
-	for (int y=0; y < image_height_block; y++) {
+	for (int y=0; y < image_height; y++) {
 		for (int x=0; x < image_width; x++) {
 
 			//for each filter weight
