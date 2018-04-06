@@ -48,15 +48,20 @@ void convolutionSeq(float *output, float *input, float *filter) {
 __global__ void convolution_kernel_naive(float *output, float *input, float *filter) {
 	unsigned x = blockDim.x * blockIdx.x + threadIdx.x;
 	unsigned y = blockDim.y * blockIdx.y + threadIdx.y;
+  printf("A\n");
 	float sum = 0;
   unsigned int image_height_block = ceilf(image_width * image_height / (1024. * 1024. /* optimal size */));
   unsigned int input_height_block = (image_height_block + border_height);
+  printf("B\n");
+
 	//for each filter weight
 	for (int i=0; i < filter_height; i++) {
 		for (int j=0; j < filter_width; j++) {
 			sum += input[(y+i)*input_width+x+j] * filter[i*filter_width+j];
 		}
 	}
+  printf("C\n");
+
 	output[y*image_width+x] = sum;
 
 }
