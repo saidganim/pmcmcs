@@ -2,8 +2,8 @@
 #include <string.h>
 #include "timer.h"
 
-#define image_height 1024
-#define image_width 1024
+#define image_height 102400
+#define image_width 255
 
 #define filter_height 5
 #define filter_width 5
@@ -49,9 +49,10 @@ __global__ void convolution_kernel_naive(float *output, float *input, float *fil
 	unsigned x = blockDim.x * blockIdx.x + threadIdx.x;
 	unsigned y = blockDim.y * blockIdx.y + threadIdx.y;
 	float sum = 0;
-  unsigned int image_height_block = ceilf(image_width * image_height / (1024. * 1024. /* optimal size */));
-  unsigned int input_height_block = (image_height_block + border_height);
+	unsigned int image_height_block = image_height / ceilf(image_height  / (1024.) /* optimal size */);
 
+	if(y >= image_height_block || x > image_width)
+		return;
 	//for each filter weight
 	for (int i=0; i < filter_height; i++) {
 		for (int j=0; j < filter_width; j++) {
@@ -65,77 +66,63 @@ __global__ void convolution_kernel_naive(float *output, float *input, float *fil
 
 void convolutionCUDA(float *output, float *input, float *filter) {
 	float *d_input, *d_input2; float *d_output; float *d_filter;
-  cudaStream_t streams[2];
-  cudaStream_t *stream1 = streams, *stream2 = streams + 1;
+	cudaStream_t streams[2];
+	cudaStream_t *stream1 = streams, *stream2 = streams + 1;
 	cudaError_t err;
-  unsigned int image_height_block = image_height / ceilf(image_width * image_height / (1024. * 1024. /* optimal size */));
-  unsigned int input_height_block = (image_height_block + border_height);
+	unsigned int image_height_block = image_height / ceilf(image_height  / (1024.) /* optimal size */);
+	unsigned int input_height_block = (image_height_block + border_height);
 	timer kernelTime = timer("kernelTime");
 	timer memoryTime = timer("memoryTime");
-  cudaStreamCreate(stream1);
-  cudaStreamCreate(stream2);
+	cudaStreamCreate(stream1);
+	cudaStreamCreate(stream2);
 	// memory allocation
 	err = cudaMalloc((void **)&d_input, input_height_block*input_width*sizeof(float));
 	if (err != cudaSuccess) { fprintf(stderr, "Error in cudaMalloc d_input: %s\n", cudaGetErrorString( err )); }
-  err = cudaMalloc((void **)&d_input2, input_height_block*input_width*sizeof(float));
+	err = cudaMalloc((void **)&d_input2, input_height_block*input_width*sizeof(float));
 	if (err != cudaSuccess) { fprintf(stderr, "Error in cudaMalloc d_input: %s\n", cudaGetErrorString( err )); }
 	err = cudaMalloc((void **)&d_output, image_height_block*image_width*sizeof(float));
 	if (err != cudaSuccess) { fprintf(stderr, "Error in cudaMalloc d_output: %s\n", cudaGetErrorString( err )); }
 	err = cudaMalloc((void **)&d_filter, filter_height*filter_width*sizeof(float));
 	if (err != cudaSuccess) { fprintf(stderr, "Error in cudaMalloc d_filter: %s\n", cudaGetErrorString( err )); }
 
-  memoryTime.start();
-  // host to device
-  err = cudaMemcpyAsync(d_input, input, input_height_block*input_width*sizeof(float), cudaMemcpyHostToDevice, *stream2);
-  if (err != cudaSuccess) { fprintf(stderr, "Error in cudaMemcpy host to device input: %s\n", cudaGetErrorString( err ));  }
-  err = cudaMemcpyAsync(d_filter, filter, filter_height*filter_width*sizeof(float), cudaMemcpyHostToDevice, *stream2);
-  if (err != cudaSuccess) { fprintf(stderr, "Error in cudaMemcpy host to device filter: %s\n", cudaGetErrorString( err ));  }
+	memoryTime.start();
+	err = cudaMemcpyAsync(d_input, input, input_height_block*input_width*sizeof(float), cudaMemcpyHostToDevice, *stream2);
+	if (err != cudaSuccess) { fprintf(stderr, "Error in cudaMemcpy host to device input: %s\n", cudaGetErrorString( err ));  }
+	err = cudaMemcpyAsync(d_filter, filter, filter_height*filter_width*sizeof(float), cudaMemcpyHostToDevice, *stream2);
+	if (err != cudaSuccess) { fprintf(stderr, "Error in cudaMemcpy host to device filter: %s\n", cudaGetErrorString( err ));  }
 
-  // zero the result array
-  err = cudaMemsetAsync(d_output, 0, image_height_block*image_width*sizeof(float), *stream2);
-  if (err != cudaSuccess) { fprintf(stderr, "Error in cudaMemset output: %s\n", cudaGetErrorString( err ));  }
-  memoryTime.stop();
+	err = cudaMemsetAsync(d_output, 0, image_height_block*image_width*sizeof(float), *stream2);
+	if (err != cudaSuccess) { fprintf(stderr, "Error in cudaMemset output: %s\n", cudaGetErrorString( err ));  }
+	memoryTime.stop();
 
-  {float* tmp = d_input; d_input = d_input2; d_input2 = tmp;}
+	{float* tmp = d_input; d_input = d_input2; d_input2 = tmp;}
 
 
-  for(int i = 0; i < image_height;){
-    {float* tmp = d_input; d_input = d_input2; d_input2 = tmp;}
-    //setup the grid and thread blocks
-  	//thread block size
-  	dim3 threads(block_size_x, block_size_y);
-  	//problem size divided by thread block size rounded up
-  	dim3 grid(int(ceilf(image_width/(float)threads.x)), int(ceilf(image_height_block/(float)threads.y)) );
-    cudaStreamSynchronize(*stream2);
-    cudaStreamSynchronize(*stream1);
-  	//measure the GPU function
-  	kernelTime.start();
-  	convolution_kernel_naive<<<grid, threads, 0 , *stream1>>>(d_output, d_input, d_filter);
+	kernelTime.start();
+	for(int i = 0; i < image_height; ) {
+		{float* tmp = d_input; d_input = d_input2; d_input2 = tmp;}
+		dim3 threads(block_size_x, block_size_y);
+		dim3 grid(int(ceilf(image_width/(float)threads.x)), int(ceilf(image_height_block/(float)threads.y)) );
+		cudaStreamSynchronize(*stream2);
+		convolution_kernel_naive<<<grid, threads, 0, *stream1>>>(d_output, d_input, d_filter);
+		memoryTime.start();
+		i += image_height_block;
+		if(i >= image_height) {
+			kernelTime.stop();
+			memoryTime.stop();
+			goto cont;
+		}
+		err = cudaMemcpyAsync(d_input2, input + (i/image_height_block) * image_height_block * input_width, input_height_block*input_width*sizeof(float), cudaMemcpyHostToDevice, *stream2);
+		if (err != cudaSuccess) { fprintf(stderr, "Error in cudaMemcpy host to device input: %s\n", cudaGetErrorString( err ));}
 
-  	kernelTime.stop();
+		memoryTime.stop();
 
-  	// //check to see if all went well
-  	// err = cudaGetLastError();
-  	// if (err != cudaSuccess) { fprintf(stderr, "Error during kernel launch convolution_kernel: %s\n", cudaGetErrorString( err )); }
+cont:
+		cudaStreamSynchronize(*stream1);
+		err = cudaMemcpyAsync(output + (i - image_height_block) * image_width, d_output, image_height_block*image_width*sizeof(float), cudaMemcpyDeviceToHost, *stream2);
+	}
 
-  	//copy the result back to host memory
-  	memoryTime.start();
-  	err = cudaMemcpyAsync(output, d_output + i, image_height_block*image_width*sizeof(float), cudaMemcpyDeviceToHost, *stream2);
-    // host to device
-    i += image_height_block;
-    if(i >= image_height)
-      continue;
-    err = cudaMemcpyAsync(d_input2, input + i, input_height_block*input_width*sizeof(float), cudaMemcpyHostToDevice, *stream2);
-    if (err != cudaSuccess) { fprintf(stderr, "Error in cudaMemcpy host to device input: %s\n", cudaGetErrorString( err ));  }
-
-    // zero the result array
-    err = cudaMemsetAsync(d_output, 0, image_height_block*image_width*sizeof(float), *stream2);
-    if (err != cudaSuccess) { fprintf(stderr, "Error in cudaMemset output: %s\n", cudaGetErrorString( err ));  }
-  	memoryTime.stop();
-
-  }
-
-  cudaDeviceSynchronize();
+	cudaDeviceSynchronize();
 	err = cudaFree(d_input);
 	if (err != cudaSuccess) { fprintf(stderr, "Error in freeing d_input: %s\n", cudaGetErrorString( err )); }
 	err = cudaFree(d_output);
