@@ -119,10 +119,10 @@ void convolutionCUDA(float *output, float *input, float *filter) {
   	memoryTime.start();
   	err = cudaMemcpyAsync(output, d_output + i, image_height_block*image_width*sizeof(float), cudaMemcpyDeviceToHost, *stream2);
     // host to device
-    i += image_height_block
+    i += image_height_block;
     if(i >= image_height)
       continue;
-    err = cudaMemcpy(d_input2, input + i, input_height_block*input_width*sizeof(float), cudaMemcpyHostToDevice, *stream2);
+    err = cudaMemcpyAsync(d_input2, input + i, input_height_block*input_width*sizeof(float), cudaMemcpyHostToDevice, *stream2);
     if (err != cudaSuccess) { fprintf(stderr, "Error in cudaMemcpy host to device input: %s\n", cudaGetErrorString( err ));  }
 
     // zero the result array
