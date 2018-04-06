@@ -4,9 +4,10 @@
 #include <string.h>
 #include <sys/time.h>
 #include <cuda.h>
+extern "C" {
 #include <input.h>
 #include <output.h>
-
+}
 #define _index_macro(a, b, c) a[M * (b) + (c)]
 #define _index_macro_pat(a, b, c) a[(M + 2) * (b) + (c)]
 
@@ -16,6 +17,11 @@ static void checkCudaCall(cudaError_t result) {
 		exit(1);
 	}
 }
+
+__constant__ double dir_nc = 1.464466094067263e-01;  //sqrtf(2)/(sqrtf(2) + 1) / 4;
+__constant__ double dig_nc = 1.035533905932738e-01; // 1 /(sqrtf(2) + 1) / 4;
+
+
 
 __device__ static double atomicMaxf(double* address, double val)
 {
@@ -29,6 +35,18 @@ __device__ static double atomicMaxf(double* address, double val)
 	return __longlong_as_double(old);
 }
 
+__device__ static double atomicSetf(double* address, double val)
+{
+	unsigned long long int* address_as_i = (unsigned long long int*) address;
+	unsigned long long int old = *address_as_i, assumed;
+	do {
+		assumed = old;
+		old = atomicCAS(address_as_i, assumed,
+		                __double_as_longlong(val));
+	} while (assumed != old);
+	return __longlong_as_double(old);
+}
+
 __global__ void prepare_borders(double* temp_init, double* temp_tmp, int N, int M, double* maxdiff, double threshold){
 	unsigned i = blockDim.x * blockIdx.x + threadIdx.x;
 	i = i / M;
@@ -36,31 +54,30 @@ __global__ void prepare_borders(double* temp_init, double* temp_tmp, int N, int 
 	if(i >= N)
 		return;
 
-	if(*maxdiff < threshold && *maxdiff >= 0)
-		return;
-
-	*maxdiff = -1;
+	//if((*maxdiff < threshold) && (*maxdiff >= 0))
+	//	return;
+	//atomicSetf(maxdiff , -1.);
+	*maxdiff = -1.;
 	_index_macro_pat(temp_init, i + 1, 0) = _index_macro_pat(temp_init, i + 1, M);     // move last column to 0's
 	_index_macro_pat(temp_init, i + 1,M + 1) = _index_macro_pat(temp_init, i + 1, 1);     // move first column to (M+1)'s
 	_index_macro_pat(temp_tmp, i + 1,0) = _index_macro_pat(temp_init, i + 1, M);     // move last column to 0's
 	_index_macro_pat(temp_tmp, i + 1, M + 1) = _index_macro_pat(temp_init, i + 1, 1);     // move first column to (Mi+1)'s
 }
 
+
+
 __global__ void iteration(double* temp_init, double* temp_tmp, double* conductivity, int N, int M, double* maxdiff, double threshold, unsigned int* iter_counter) {
 	unsigned i = blockIdx.x * blockDim.x + threadIdx.x;
 	unsigned j = i % M + 1;
-	double dir_nc = sqrtf(2)/(sqrtf(2) + 1) / 4;
-	double dig_nc = 1 /(sqrtf(2) + 1) / 4;
-	double diff;
 	i = i / M + 1;
 	if(i > N)
 		return;
 
-	if(*maxdiff < threshold && *maxdiff >= 0) {
-		if(i == 1 && j == 1)
-			*iter_counter += 1;
-		return;
-	}
+	//if((*maxdiff < threshold) && (*maxdiff >= 0)) {
+	//	//if(i == 1 && j == 1)
+	//	atomicAdd(iter_counter, 1);
+	//	return;
+	//}
 	double weighted_neighb = dir_nc *
 		                       ( // Direct neighbors
 		_index_macro_pat(temp_init, i - 1, j) + _index_macro_pat(temp_init, i, j - 1) +
@@ -71,12 +88,25 @@ __global__ void iteration(double* temp_init, double* temp_tmp, double* conductiv
 		_index_macro_pat(temp_init, i - 1, j + 1) + _index_macro_pat(temp_init, i + 1, j + 1)
 	                         );
 	weighted_neighb *= (1 - _index_macro(conductivity, i - 1, j - 1));
-	_index_macro_pat(temp_tmp, i, j) = _index_macro_pat(temp_init, i, j) * _index_macro(conductivity, i - 1, j - 1);
-	_index_macro_pat(temp_tmp, i, j) += weighted_neighb;
+	weighted_neighb += _index_macro_pat(temp_init, i, j) * _index_macro(conductivity, i - 1, j - 1);
+	_index_macro_pat(temp_tmp, i, j) = weighted_neighb;
+
+}
+
+__global__ void maxdiff_count(double* temp_init, double* temp_tmp, int N, int M, double* maxdiff, double threshold){
+	double diff;
+	unsigned i = blockIdx.x * blockDim.x + threadIdx.x;
+	unsigned j = i % M + 1;
+	i = i / M + 1;
+	if(i > N)
+		return;
 
 	diff = fabs(_index_macro_pat(temp_tmp, i, j) - _index_macro_pat(temp_init, i, j));
-	atomicMaxf(maxdiff, diff);
+	if(diff > *maxdiff /* && *maxdiff >  threshold && *maxdiff > 0*/)
+		atomicMaxf(maxdiff, diff);
 }
+
+
 extern "C"
 void cuda_do_compute(const struct parameters* p, struct results *r) {
 	struct timeval before, after;
@@ -127,9 +157,11 @@ void cuda_do_compute(const struct parameters* p, struct results *r) {
 		{double* tmp = deviceA; deviceA = deviceB; deviceB = tmp;}
 		dim3 gridSize(N/threadBlockSize + 1, M / threadBlockSize + 1);
 		prepare_borders<<<(N * M / threadBlockSize + 1), threadBlockSize>>>(deviceA, deviceB, N, M, deviceMaxdiff, p->threshold);
-		checkCudaCall(cudaGetLastError());
 		iteration<<<(N * M / threadBlockSize + 1), threadBlockSize >>>(deviceA, deviceB, deviceConductivity, N, M, deviceMaxdiff, p->threshold, deviceIterCount);
-
+		maxdiff_count<<< (N * M / threadBlockSize + 1), threadBlockSize >>>(deviceA, deviceB, N, M, deviceMaxdiff, p->threshold);
+		cudaDeviceSynchronize();
+		cudaMemcpy(&maxdiff, deviceMaxdiff, sizeof(double), cudaMemcpyDeviceToHost);
+		//if(maxdiff < p->threshold){ ++iter; break;}
 		if((iter % p->period) == 0) {
 			cudaDeviceSynchronize();
 			cudaMemcpy(temp_init, deviceB, (N + 2) * (M + 2) * sizeof(double), cudaMemcpyDeviceToHost);
@@ -153,16 +185,16 @@ void cuda_do_compute(const struct parameters* p, struct results *r) {
 			r->niter = iter;
 			r->tavg = local_sum /(N * M);
 			r->maxdiff = maxdiff;
-//report_results(p, r);
+			report_results(p, r);
 		}
 	}
-	gettimeofday(&after, NULL);
 	cudaDeviceSynchronize();
+	gettimeofday(&after, NULL);
 	cudaMemcpy(temp_init, deviceB, (N + 2) * (M + 2) * sizeof(double), cudaMemcpyDeviceToHost);
 	cudaMemcpy(&maxdiff, deviceMaxdiff, sizeof(double), cudaMemcpyDeviceToHost);
 	cudaMemcpy(&iter_counter, deviceIterCount, sizeof(unsigned int), cudaMemcpyDeviceToHost);
 	cudaDeviceSynchronize();
-	iter -= iter_counter;
+	iter -= iter_counter / (N*M);
 	r->tmin = r->tmax = (*temp_init)[1][1];
 	local_sum = 0;
 	for(int i = 1; i <= N; ++i) {
