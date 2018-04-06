@@ -49,6 +49,7 @@ __global__ void convolution_kernel_naive(float *output, float *input, float *fil
 	unsigned x = blockDim.x * blockIdx.x + threadIdx.x;
 	unsigned y = blockDim.y * blockIdx.y + threadIdx.y;
 	float sum = 0;
+  unsigned int image_height_block = ceilf(image_width * image_height / (1024. * 1024. /* optimal size */));
 
 	//for each filter weight
 	for (int i=0; i < filter_height; i++) {
