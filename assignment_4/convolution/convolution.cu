@@ -105,15 +105,16 @@ void convolutionCUDA(float *output, float *input, float *filter) {
   	//problem size divided by thread block size rounded up
   	dim3 grid(int(ceilf(image_width/(float)threads.x)), int(ceilf(image_height_block/(float)threads.y)) );
     cudaStreamSynchronize(*stream2);
+    cudaStreamSynchronize(*stream1);
   	//measure the GPU function
   	kernelTime.start();
   	convolution_kernel_naive<<<grid, threads, 0 , *stream1>>>(d_output, d_input, d_filter);
 
   	kernelTime.stop();
 
-  	//check to see if all went well
-  	err = cudaGetLastError();
-  	if (err != cudaSuccess) { fprintf(stderr, "Error during kernel launch convolution_kernel: %s\n", cudaGetErrorString( err )); }
+  	// //check to see if all went well
+  	// err = cudaGetLastError();
+  	// if (err != cudaSuccess) { fprintf(stderr, "Error during kernel launch convolution_kernel: %s\n", cudaGetErrorString( err )); }
 
   	//copy the result back to host memory
   	memoryTime.start();
@@ -132,6 +133,7 @@ void convolutionCUDA(float *output, float *input, float *filter) {
 
   }
 
+  cudaDeviceSynchronize();
 	err = cudaFree(d_input);
 	if (err != cudaSuccess) { fprintf(stderr, "Error in freeing d_input: %s\n", cudaGetErrorString( err )); }
 	err = cudaFree(d_output);
