@@ -50,7 +50,7 @@ __global__ void convolution_kernel_naive(float *output, float *input, float *fil
 	unsigned y = blockDim.y * blockIdx.y + threadIdx.y;
 	float sum = 0;
   unsigned int image_height_block = ceilf(image_width * image_height / (1024. * 1024. /* optimal size */));
-
+  unsigned int input_height_block = (image_height_block + border_height);
 	//for each filter weight
 	for (int i=0; i < filter_height; i++) {
 		for (int j=0; j < filter_width; j++) {
@@ -67,6 +67,7 @@ void convolutionCUDA(float *output, float *input, float *filter) {
   cudaStream_t *stream1 = streams, *stream2 = streams + 1;
 	cudaError_t err;
   unsigned int image_height_block = ceilf(image_width * image_height / (1024. * 1024. /* optimal size */));
+  unsigned int input_height_block = (image_height_block + border_height);
 	timer kernelTime = timer("kernelTime");
 	timer memoryTime = timer("memoryTime");
   cudaStreamCreate(stream1);
