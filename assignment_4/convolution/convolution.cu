@@ -94,11 +94,11 @@ void convolutionCUDA(float *output, float *input, float *filter) {
   if (err != cudaSuccess) { fprintf(stderr, "Error in cudaMemset output: %s\n", cudaGetErrorString( err ));  }
   memoryTime.stop();
 
-  {float* tmp = d_input; d_input = d_input2; d_input2 = temp;}
+  {float* tmp = d_input; d_input = d_input2; d_input2 = tmp;}
 
 
   for(int i = 0; i < image_height; ){
-    {float* tmp = d_input; d_input = d_input2; d_input2 = temp;}
+    {float* tmp = d_input; d_input = d_input2; d_input2 = tmp;}
     //setup the grid and thread blocks
   	//thread block size
   	dim3 threads(block_size_x, block_size_y);
@@ -122,7 +122,7 @@ void convolutionCUDA(float *output, float *input, float *filter) {
     i += image_height_block
     if(i >= image_height)
       continue;
-    err = cudaMemcpy(d_input, input + i, input_height_block*input_width*sizeof(float), cudaMemcpyHostToDevice, *stream2);
+    err = cudaMemcpy(d_input2, input + i, input_height_block*input_width*sizeof(float), cudaMemcpyHostToDevice, *stream2);
     if (err != cudaSuccess) { fprintf(stderr, "Error in cudaMemcpy host to device input: %s\n", cudaGetErrorString( err ));  }
 
     // zero the result array
